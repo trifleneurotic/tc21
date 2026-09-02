@@ -1,7 +1,6 @@
 package main
 
 import (
-	"fmt"
 	"path/filepath"
 
 	"github.com/oakmound/oak/v4"
@@ -10,10 +9,13 @@ import (
 	"github.com/oakmound/oak/v4/event"
 	"github.com/oakmound/oak/v4/key"
 	"github.com/oakmound/oak/v4/render"
+	"github.com/oakmound/oak/v4/render/mod"
 	"github.com/oakmound/oak/v4/scene"
 )
 
 const GridSize = 4.0
+
+var keyDown bool
 
 func main() {
 	oak.AddScene("firstScene", scene.Scene{
@@ -22,6 +24,12 @@ func main() {
 			var rightPressed bool
 			var downPressed bool
 			var upPressed bool
+			var leftRotated bool
+			var rightRotated bool
+			var upRotated bool
+			var downRotated bool
+			var currentRotation float32 = 0.0
+
 			schoonerSprite, err := render.LoadSprite(filepath.Join("assets/images/schooner1.png"))
 			if err != nil {
 				panic(err)
@@ -35,56 +43,128 @@ func main() {
 			event.Bind(ctx, event.Enter, schooner, func(c *entities.Entity, ev event.EnterPayload) event.Response {
 
 				// Move left and right with A and D
-				heldLeft, _ := oak.IsHeld(key.A)
-				if oak.IsDown(key.A) {
-					if !leftPressed || heldLeft {
-						if schooner.X()-GridSize >= 0 { // Prevent moving out of bounds
-							schooner.SetX(schooner.X() - GridSize)
-							fmt.Println(schooner.X())
-							leftPressed = true
+				if !keyDown {
+					if oak.IsDown(key.A) {
+						heldLeft, _ := oak.IsHeld(key.A)
+						keyDown = true
+						if !leftPressed || heldLeft {
+							if schooner.X()-GridSize >= 0 { // Prevent moving out of bounds
+								schooner.SetX(schooner.X() - GridSize)
+								leftPressed = true
+								if !leftRotated && currentRotation != 270.0 {
+									oldRotation := currentRotation
+									currentRotation = 270.0
+									var rotateVal float32
+									if oldRotation == 0.0 {
+										rotateVal = 90.0
+									} else if oldRotation == 180.0 {
+										rotateVal = -90.0
+									} else {
+										rotateVal = 180.0
+									}
+									schoonerSprite = schoonerSprite.Modify(mod.Rotate(rotateVal)).(*render.Sprite)
+									rightRotated = true
+								}
+							}
 						}
 					}
 				} else {
 					leftPressed = false
+					leftRotated = false
+					keyDown = false
 				}
 
-				heldRight, _ := oak.IsHeld(key.D)
-				if oak.IsDown(key.D) {
-					if !rightPressed || heldRight {
-						if schooner.X()+GridSize <= 768 { // Prevent moving out of bounds
-							schooner.SetX(schooner.X() + GridSize)
-							fmt.Println(schooner.X())
-							rightPressed = true
+				if !keyDown {
+					if oak.IsDown(key.D) {
+						heldRight, _ := oak.IsHeld(key.D)
+						keyDown = true
+						if !rightPressed || heldRight {
+							if schooner.X()+GridSize <= 768 { // Prevent moving out of bounds
+								schooner.SetX(schooner.X() + GridSize)
+								rightPressed = true
+								if !rightRotated && currentRotation != 90.0 {
+									oldRotation := currentRotation
+									currentRotation = 90.0
+									var rotateVal float32
+									if oldRotation == 0.0 {
+										rotateVal = -90.0
+									} else if oldRotation == 180.0 {
+										rotateVal = 90.0
+									} else {
+										rotateVal = 180.0
+									}
+									schoonerSprite = schoonerSprite.Modify(mod.Rotate(rotateVal)).(*render.Sprite)
+									rightRotated = true
+								}
+							}
 						}
 					}
 				} else {
 					rightPressed = false
+					rightRotated = false
+					keyDown = false
 				}
 
-				heldDown, _ := oak.IsHeld(key.S)
-				if oak.IsDown(key.S) {
-					if !downPressed || heldDown {
-						if schooner.Y()+GridSize <= 568 { // Prevent moving out of bounds
-							schooner.SetY(schooner.Y() + GridSize)
-							fmt.Println(schooner.Y())
-							downPressed = true
+				if !keyDown {
+					if oak.IsDown(key.S) {
+						heldDown, _ := oak.IsHeld(key.S)
+						keyDown = true
+						if !downPressed || heldDown {
+							if schooner.Y()+GridSize <= 568 { // Prevent moving out of bounds
+								schooner.SetY(schooner.Y() + GridSize)
+								downPressed = true
+								if !downRotated && currentRotation != 180.0 {
+									oldRotation := currentRotation
+									currentRotation = 180.0
+									var rotateVal float32
+									if oldRotation == 90.0 {
+										rotateVal = -90.0
+									} else if oldRotation == 270.0 {
+										rotateVal = 90.0
+									} else {
+										rotateVal = 180.0
+									}
+									schoonerSprite = schoonerSprite.Modify(mod.Rotate(rotateVal)).(*render.Sprite)
+									downRotated = true
+								}
+							}
 						}
 					}
 				} else {
 					downPressed = false
+					downRotated = false
+					keyDown = false
 				}
 
-				heldUp, _ := oak.IsHeld(key.W)
-				if oak.IsDown(key.W) {
-					if !upPressed || heldUp {
-						if schooner.Y()-GridSize >= 0 { // Prevent moving out of bounds
-							schooner.SetY(schooner.Y() - GridSize)
-							fmt.Println(schooner.Y())
-							upPressed = true
+				if !keyDown {
+					if oak.IsDown(key.W) {
+						heldUp, _ := oak.IsHeld(key.W)
+						keyDown = true
+						if !upPressed || heldUp {
+							if schooner.Y()-GridSize >= 0 { // Prevent moving out of bounds
+								schooner.SetY(schooner.Y() - GridSize)
+								upPressed = true
+								if !upRotated && currentRotation != 0.0 {
+									oldRotation := currentRotation
+									currentRotation = 0.0
+									var rotateVal float32
+									if oldRotation == 90.0 {
+										rotateVal = 90.0
+									} else if oldRotation == 270.0 {
+										rotateVal = -90.0
+									} else {
+										rotateVal = 180.0
+									}
+									schoonerSprite = schoonerSprite.Modify(mod.Rotate(rotateVal)).(*render.Sprite)
+									upRotated = true
+								}
+							}
 						}
 					}
 				} else {
 					upPressed = false
+					upRotated = false
+					keyDown = false
 				}
 
 				return 0
