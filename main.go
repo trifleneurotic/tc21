@@ -20,6 +20,8 @@ func main() {
 		Start: func(ctx *scene.Context) {
 			var leftPressed bool
 			var rightPressed bool
+			var downPressed bool
+			var upPressed bool
 			schoonerSprite, err := render.LoadSprite(filepath.Join("assets/images/schooner1.png"))
 			if err != nil {
 				panic(err)
@@ -36,9 +38,11 @@ func main() {
 				heldLeft, _ := oak.IsHeld(key.A)
 				if oak.IsDown(key.A) {
 					if !leftPressed || heldLeft {
-						schooner.SetX(schooner.X() - GridSize)
-						fmt.Println(schooner.X())
-						leftPressed = true
+						if schooner.X()-GridSize >= 0 { // Prevent moving out of bounds
+							schooner.SetX(schooner.X() - GridSize)
+							fmt.Println(schooner.X())
+							leftPressed = true
+						}
 					}
 				} else {
 					leftPressed = false
@@ -47,12 +51,40 @@ func main() {
 				heldRight, _ := oak.IsHeld(key.D)
 				if oak.IsDown(key.D) {
 					if !rightPressed || heldRight {
-						schooner.SetX(schooner.X() + GridSize)
-						fmt.Println(schooner.X())
-						rightPressed = true
+						if schooner.X()+GridSize <= 768 { // Prevent moving out of bounds
+							schooner.SetX(schooner.X() + GridSize)
+							fmt.Println(schooner.X())
+							rightPressed = true
+						}
 					}
 				} else {
 					rightPressed = false
+				}
+
+				heldDown, _ := oak.IsHeld(key.S)
+				if oak.IsDown(key.S) {
+					if !downPressed || heldDown {
+						if schooner.Y()+GridSize <= 568 { // Prevent moving out of bounds
+							schooner.SetY(schooner.Y() + GridSize)
+							fmt.Println(schooner.Y())
+							downPressed = true
+						}
+					}
+				} else {
+					downPressed = false
+				}
+
+				heldUp, _ := oak.IsHeld(key.W)
+				if oak.IsDown(key.W) {
+					if !upPressed || heldUp {
+						if schooner.Y()-GridSize >= 0 { // Prevent moving out of bounds
+							schooner.SetY(schooner.Y() - GridSize)
+							fmt.Println(schooner.Y())
+							upPressed = true
+						}
+					}
+				} else {
+					upPressed = false
 				}
 
 				return 0
