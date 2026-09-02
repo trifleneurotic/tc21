@@ -15,8 +15,6 @@ import (
 
 const GridSize = 4.0
 
-var keyDown bool
-
 func main() {
 	oak.AddScene("firstScene", scene.Scene{
 		Start: func(ctx *scene.Context) {
@@ -43,10 +41,10 @@ func main() {
 			event.Bind(ctx, event.Enter, schooner, func(c *entities.Entity, ev event.EnterPayload) event.Response {
 
 				// Move left and right with A and D
-				if !keyDown {
-					if oak.IsDown(key.A) {
+
+				if oak.IsDown(key.A) {
+					if !oak.IsDown(key.W) && !oak.IsDown(key.S) && !oak.IsDown(key.D) {
 						heldLeft, _ := oak.IsHeld(key.A)
-						keyDown = true
 						if !leftPressed || heldLeft {
 							if schooner.X()-GridSize >= 0 { // Prevent moving out of bounds
 								schooner.SetX(schooner.X() - GridSize)
@@ -71,13 +69,12 @@ func main() {
 				} else {
 					leftPressed = false
 					leftRotated = false
-					keyDown = false
+
 				}
 
-				if !keyDown {
-					if oak.IsDown(key.D) {
+				if oak.IsDown(key.D) {
+					if !oak.IsDown(key.S) && !oak.IsDown(key.W) && !oak.IsDown(key.A) {
 						heldRight, _ := oak.IsHeld(key.D)
-						keyDown = true
 						if !rightPressed || heldRight {
 							if schooner.X()+GridSize <= 768 { // Prevent moving out of bounds
 								schooner.SetX(schooner.X() + GridSize)
@@ -102,13 +99,12 @@ func main() {
 				} else {
 					rightPressed = false
 					rightRotated = false
-					keyDown = false
+
 				}
 
-				if !keyDown {
-					if oak.IsDown(key.S) {
+				if oak.IsDown(key.S) {
+					if !oak.IsDown(key.W) && !oak.IsDown(key.A) && !oak.IsDown(key.D) {
 						heldDown, _ := oak.IsHeld(key.S)
-						keyDown = true
 						if !downPressed || heldDown {
 							if schooner.Y()+GridSize <= 568 { // Prevent moving out of bounds
 								schooner.SetY(schooner.Y() + GridSize)
@@ -133,13 +129,12 @@ func main() {
 				} else {
 					downPressed = false
 					downRotated = false
-					keyDown = false
+
 				}
 
-				if !keyDown {
-					if oak.IsDown(key.W) {
+				if oak.IsDown(key.W) {
+					if !oak.IsDown(key.S) && !oak.IsDown(key.A) && !oak.IsDown(key.D) {
 						heldUp, _ := oak.IsHeld(key.W)
-						keyDown = true
 						if !upPressed || heldUp {
 							if schooner.Y()-GridSize >= 0 { // Prevent moving out of bounds
 								schooner.SetY(schooner.Y() - GridSize)
@@ -164,7 +159,7 @@ func main() {
 				} else {
 					upPressed = false
 					upRotated = false
-					keyDown = false
+
 				}
 
 				return 0
