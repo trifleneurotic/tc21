@@ -6,6 +6,7 @@ import (
 
 	"github.com/oakmound/oak/v4"
 	"github.com/oakmound/oak/v4/alg/floatgeom"
+	"github.com/oakmound/oak/v4/collision"
 	"github.com/oakmound/oak/v4/entities"
 	"github.com/oakmound/oak/v4/event"
 	"github.com/oakmound/oak/v4/key"
@@ -15,6 +16,13 @@ import (
 )
 
 const GridSize = 4.0
+
+const (
+	SchoonerLabel   collision.Label = 1
+	MorgLabel       collision.Label = 2
+	TumbleweedLabel collision.Label = 3
+	BulletLabel     collision.Label = 4
+)
 
 func main() {
 	oak.AddScene("firstScene", scene.Scene{
@@ -29,7 +37,9 @@ func main() {
 			var downRotated bool
 			var currentRotation float32 = 0.0
 			var bulletAlive bool
-			var bullet render.Renderable
+			var bullet *entities.Entity
+			var bulletSprite *render.Sprite
+			var lockedBulletDirection float32
 
 			schoonerSprite, err := render.LoadSprite(filepath.Join("assets/images/schooner1.png"))
 			if err != nil {
@@ -38,8 +48,11 @@ func main() {
 			schooner := entities.New(ctx,
 				entities.WithRenderable(schoonerSprite),
 				entities.WithPosition(floatgeom.Point2{64, 64}),
+				entities.WithLabel(SchoonerLabel),
 			)
 			render.Draw(schoonerSprite)
+
+			bulletSprite = render.NewColorBox(8, 8, color.RGBA{R: 255, A: 255})
 
 			event.Bind(ctx, event.Enter, schooner, func(c *entities.Entity, ev event.EnterPayload) event.Response {
 
@@ -167,38 +180,44 @@ func main() {
 
 				if oak.IsDown(key.Spacebar) {
 					if !bulletAlive {
-						bullet = render.NewColorBox(8, 8, color.RGBA{R: 255, A: 255})
-						bullet.SetPos(schooner.X()+16, schooner.Y()+16)
-						render.Draw(bullet)
+						bullet = entities.New(ctx,
+							entities.WithRenderable(bulletSprite),
+							entities.WithLabel(BulletLabel),
+							entities.WithPosition(floatgeom.Point2{schooner.X() + 16, schooner.Y() + 16}),
+						)
+						lockedBulletDirection = currentRotation
+						render.Draw(bulletSprite)
 						bulletAlive = true
 					}
+
 				}
 
-				if bulletAlive {
+				if bullet != nil {
 					newBulletX := bullet.X()
 					newBulletY := bullet.Y()
 
-					if currentRotation == 0.0 {
+					if lockedBulletDirection == 0.0 {
 						newBulletY -= 10
-					} else if currentRotation == 90.0 {
+					} else if lockedBulletDirection == 90.0 {
 						newBulletX += 10
-					} else if currentRotation == 180.0 {
+					} else if lockedBulletDirection == 180.0 {
 						newBulletY += 10
-					} else if currentRotation == 270.0 {
+					} else if lockedBulletDirection == 270.0 {
 						newBulletX -= 10
 					}
-					bullet.SetPos(newBulletX, newBulletY)
-					render.Draw(bullet)
+					bullet.SetPos(floatgeom.Point2{newBulletX, newBulletY})
+					render.Draw(bulletSprite)
 
 					if newBulletX < 0 || newBulletX > 800 || newBulletY < 0 || newBulletY > 600 {
-						bullet.Undraw()
+						bulletSprite.Undraw()
+						if bullet != nil {
+							bullet = nil
+						}
 						bulletAlive = false
 					}
 				}
-
 				return 0
 			})
-
 		},
 	})
 
