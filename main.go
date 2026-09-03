@@ -1,9 +1,11 @@
 package main
 
 import (
+	"fmt"
 	"image"
 	"image/color"
 	"path/filepath"
+	"time"
 
 	"github.com/oakmound/oak/v4"
 	"github.com/oakmound/oak/v4/alg/floatgeom"
@@ -49,6 +51,25 @@ func main() {
 
 	oak.AddScene("firstScene", scene.Scene{
 		Start: func(ctx *scene.Context) {
+			sceneStartTime := time.Now()
+			var oldElapsedSeconds int64
+			var elapsedSeconds int64
+
+			event.GlobalBind(event.DefaultBus, event.Enter, func(ev event.EnterPayload) event.Response {
+				// Calculate total duration elapsed since the scene started
+				// Convert to seconds (as a float64 for partial seconds)
+
+				oldElapsedSeconds = elapsedSeconds
+				elapsedSeconds = int64(time.Since(sceneStartTime) / time.Second)
+
+				if oldElapsedSeconds != elapsedSeconds {
+					fmt.Printf("Elapsed Scene Time: %v seconds\n", elapsedSeconds)
+					fmt.Printf("Old Elapsed Time: %v seconds\n", oldElapsedSeconds)
+				}
+
+				return 0
+			})
+
 			var leftPressed bool
 			var rightPressed bool
 			var downPressed bool
