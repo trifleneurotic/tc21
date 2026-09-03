@@ -22,7 +22,25 @@ const (
 	MorgLabel       collision.Label = 2
 	TumbleweedLabel collision.Label = 3
 	BulletLabel     collision.Label = 4
+	SaguaroLabel    collision.Label = 5
 )
+
+// CheckAdjacentUsingSpace expands sprite A's collider by 1 pixel on all sides
+// to check if it makes contact with sprite B's space.
+func CheckAdjacentUsingSpace(a, b *entities.Entity) bool {
+	spA := a.Space
+	spB := b.Space
+
+	// Create an expanded probe space around A (+1 pixel border)
+	probe := collision.NewRect(
+		spA.X()-1,
+		spA.Y()-1,
+		spA.W()+2,
+		spA.H()+2,
+	)
+
+	return probe.Intersects(spB.Bounds())
+}
 
 func main() {
 	oak.AddScene("firstScene", scene.Scene{
