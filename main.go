@@ -1,6 +1,7 @@
 package main
 
 import (
+	"image/color"
 	"path/filepath"
 
 	"github.com/oakmound/oak/v4"
@@ -27,6 +28,8 @@ func main() {
 			var upRotated bool
 			var downRotated bool
 			var currentRotation float32 = 0.0
+			var bulletAlive bool
+			var bullet render.Renderable
 
 			schoonerSprite, err := render.LoadSprite(filepath.Join("assets/images/schooner1.png"))
 			if err != nil {
@@ -160,6 +163,37 @@ func main() {
 					upPressed = false
 					upRotated = false
 
+				}
+
+				if oak.IsDown(key.Spacebar) {
+					if !bulletAlive {
+						bullet = render.NewColorBox(8, 8, color.RGBA{R: 255, A: 255})
+						bullet.SetPos(schooner.X()+16, schooner.Y()+16)
+						render.Draw(bullet)
+						bulletAlive = true
+					}
+				}
+
+				if bulletAlive {
+					newBulletX := bullet.X()
+					newBulletY := bullet.Y()
+
+					if currentRotation == 0.0 {
+						newBulletY -= 10
+					} else if currentRotation == 90.0 {
+						newBulletX += 10
+					} else if currentRotation == 180.0 {
+						newBulletY += 10
+					} else if currentRotation == 270.0 {
+						newBulletX -= 10
+					}
+					bullet.SetPos(newBulletX, newBulletY)
+					render.Draw(bullet)
+
+					if newBulletX < 0 || newBulletX > 800 || newBulletY < 0 || newBulletY > 600 {
+						bullet.Undraw()
+						bulletAlive = false
+					}
 				}
 
 				return 0
