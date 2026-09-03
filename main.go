@@ -1,6 +1,7 @@
 package main
 
 import (
+	"image"
 	"image/color"
 	"path/filepath"
 
@@ -43,6 +44,9 @@ func CheckAdjacentUsingSpace(a, b *entities.Entity) bool {
 }
 
 func main() {
+	myColor := color.RGBA{R: 194, G: 178, B: 128, A: 255}
+	oak.SetColorBackground(image.NewUniform(myColor))
+
 	oak.AddScene("firstScene", scene.Scene{
 		Start: func(ctx *scene.Context) {
 			var leftPressed bool
