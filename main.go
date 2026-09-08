@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"image"
 	"image/color"
+	"math/rand/v2"
 	"path/filepath"
 	"time"
 
@@ -25,7 +26,7 @@ const (
 	MorgLabel       collision.Label = 2
 	TumbleweedLabel collision.Label = 3
 	BulletLabel     collision.Label = 4
-	SaguaroLabel    collision.Label = 5
+	SaguaroLabel    collision.Label = 20 + iota
 )
 
 // CheckAdjacentUsingSpace expands sprite A's collider by 1 pixel on all sides
@@ -83,6 +84,62 @@ func main() {
 			var bullet *entities.Entity
 			var bulletSprite *render.Sprite
 			var lockedBulletDirection float32
+			var saguaroSprite *render.Sprite
+			var saguaroGridXMax int
+			var saguaroGridYMax int
+			var saguaroCounter int = 0
+			var oldSchoonerPosX float64
+			var oldSchoonerPosY float64
+			var bulletHitSaguaro bool
+			var oldBulletX float64
+			var oldBulletY float64
+
+			saguaroGridXMax = 20
+			saguaroGridYMax = 14
+
+			saguaroGrid := make([][]int, saguaroGridXMax)
+			for x := range saguaroGrid {
+				saguaroGrid[x] = make([]int, saguaroGridYMax)
+			}
+			saguaros := []*entities.Entity{}
+
+			saguaroSprite, err := render.LoadSprite(filepath.Join("assets/images/saguaro1.png"))
+
+			for i := 0; i < 10; i++ {
+				saguaroX := rand.IntN(saguaroGridXMax)
+				saguaroY := rand.IntN(saguaroGridYMax)
+				saguaroFound := false
+				for !saguaroFound {
+					if saguaroGrid[saguaroX][saguaroY] == 0 {
+						saguaroGrid[saguaroX][saguaroY] = 1
+						saguaroFound = true
+					} else {
+						saguaroX = rand.IntN(saguaroGridXMax)
+						saguaroY = rand.IntN(saguaroGridYMax)
+					}
+				}
+			}
+
+			for saguaroX := 0; saguaroX < saguaroGridXMax; saguaroX++ {
+				for saguaroY := 0; saguaroY < saguaroGridYMax; saguaroY++ {
+					if saguaroGrid[saguaroX][saguaroY] == 1 {
+						saguaroCounter++
+						tmp := SaguaroLabel + collision.Label(saguaroCounter)
+						saguaro := entities.New(ctx,
+							entities.WithRenderable(saguaroSprite.Copy()),
+							entities.WithPosition(floatgeom.Point2{float64((saguaroX + 1) * 32.0), float64((saguaroY + 1) * 32.0)}),
+							entities.WithLabel(tmp),
+						)
+
+						saguaros = append(saguaros, saguaro)
+						collision.NewLabeledSpace(float64((saguaroX+1)*32.0), float64((saguaroY+1)*32.0), 32, 32, tmp)
+					}
+				}
+			}
+
+			for _, saguaro := range saguaros {
+				render.Draw(saguaro.Renderable)
+			}
 
 			schoonerSprite, err := render.LoadSprite(filepath.Join("assets/images/schooner1.png"))
 			if err != nil {
@@ -90,23 +147,57 @@ func main() {
 			}
 			schooner := entities.New(ctx,
 				entities.WithRenderable(schoonerSprite),
-				entities.WithPosition(floatgeom.Point2{64, 64}),
+				entities.WithPosition(floatgeom.Point2{0, 0}),
 				entities.WithLabel(SchoonerLabel),
 			)
+
 			render.Draw(schoonerSprite)
 
 			bulletSprite = render.NewColorBox(8, 8, color.RGBA{R: 255, A: 255})
-
 			event.Bind(ctx, event.Enter, schooner, func(c *entities.Entity, ev event.EnterPayload) event.Response {
+				bulletHitSaguaro = false
+				var hit *collision.Space
+				var bulletHit *collision.Space
 
-				// Move left and right with A and D
+				for _, saguaro := range saguaros {
+
+					collision.UpdateSpace(saguaro.X(), saguaro.Y(), 32.0, 32.0, saguaro.Space)
+
+					hit = collision.HitLabel(schooner.Space, saguaro.Space.Label)
+
+					if bulletAlive && !bulletHitSaguaro {
+						collision.UpdateSpace(bullet.X(), bullet.Y(), 8.0, 8.0, bullet.Space)
+						bulletHit = collision.HitLabel(saguaro.Space, bullet.Space.Label)
+
+						if bulletHit != nil {
+							collision.UpdateSpace(oldBulletX, oldBulletY, 8.0, 8.0, bullet.Space)
+							fmt.Println("UNDRAWING")
+							bulletSprite.Undraw()
+							if bullet != nil {
+								bullet = nil
+							}
+							bulletAlive = false
+							bulletHitSaguaro = false
+
+						}
+					}
+
+					if hit != nil {
+						schooner.SetX(oldSchoonerPosX)
+						schooner.SetY(oldSchoonerPosY)
+
+					}
+				}
 
 				if oak.IsDown(key.A) {
 					if !oak.IsDown(key.W) && !oak.IsDown(key.S) && !oak.IsDown(key.D) {
 						heldLeft, _ := oak.IsHeld(key.A)
 						if !leftPressed || heldLeft {
 							if schooner.X()-GridSize >= 0 { // Prevent moving out of bounds
-								schooner.SetX(schooner.X() - GridSize)
+								oldSchoonerPosX = schooner.X()
+								oldSchoonerPosY = schooner.Y()
+								schooner.ShiftX(-GridSize)
+
 								leftPressed = true
 								if !leftRotated && currentRotation != 270.0 {
 									oldRotation := currentRotation
@@ -128,7 +219,6 @@ func main() {
 				} else {
 					leftPressed = false
 					leftRotated = false
-
 				}
 
 				if oak.IsDown(key.D) {
@@ -136,7 +226,11 @@ func main() {
 						heldRight, _ := oak.IsHeld(key.D)
 						if !rightPressed || heldRight {
 							if schooner.X()+GridSize <= 768 { // Prevent moving out of bounds
-								schooner.SetX(schooner.X() + GridSize)
+								oldSchoonerPosX = schooner.X()
+								oldSchoonerPosY = schooner.Y()
+
+								schooner.ShiftX(GridSize)
+
 								rightPressed = true
 								if !rightRotated && currentRotation != 90.0 {
 									oldRotation := currentRotation
@@ -166,7 +260,11 @@ func main() {
 						heldDown, _ := oak.IsHeld(key.S)
 						if !downPressed || heldDown {
 							if schooner.Y()+GridSize <= 568 { // Prevent moving out of bounds
-								schooner.SetY(schooner.Y() + GridSize)
+								oldSchoonerPosX = schooner.X()
+								oldSchoonerPosY = schooner.Y()
+
+								schooner.ShiftY(GridSize)
+
 								downPressed = true
 								if !downRotated && currentRotation != 180.0 {
 									oldRotation := currentRotation
@@ -196,7 +294,11 @@ func main() {
 						heldUp, _ := oak.IsHeld(key.W)
 						if !upPressed || heldUp {
 							if schooner.Y()-GridSize >= 0 { // Prevent moving out of bounds
-								schooner.SetY(schooner.Y() - GridSize)
+								oldSchoonerPosX = schooner.X()
+								oldSchoonerPosY = schooner.Y()
+
+								schooner.ShiftY(-GridSize)
+
 								upPressed = true
 								if !upRotated && currentRotation != 0.0 {
 									oldRotation := currentRotation
@@ -221,6 +323,8 @@ func main() {
 
 				}
 
+				collision.UpdateSpace(schooner.X(), schooner.Y(), 32.0, 32.0, schooner.Space)
+
 				if oak.IsDown(key.Spacebar) {
 					if !bulletAlive {
 						bullet = entities.New(ctx,
@@ -236,6 +340,9 @@ func main() {
 				}
 
 				if bullet != nil {
+					oldBulletX = bullet.X()
+					oldBulletY = bullet.Y()
+
 					newBulletX := bullet.X()
 					newBulletY := bullet.Y()
 
