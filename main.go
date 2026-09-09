@@ -29,6 +29,121 @@ const (
 	SaguaroLabel    collision.Label = 20 + iota
 )
 
+type Direction int
+
+const (
+	Up Direction = iota + 5
+	Down
+	Left
+	Right
+	UpLeft
+	UpRight
+	DownLeft
+	DownRight
+)
+
+type AdjacentResult struct {
+	Space *collision.Space
+	CID   event.CallerID
+}
+
+func ProcessNeighbors(mySpace *collision.Space, myTree *collision.Tree) {
+	neighbors := CheckAdjacent(mySpace, myTree, Up)
+	neighbors = append(neighbors, CheckAdjacent(mySpace, myTree, Down)...)
+	neighbors = append(neighbors, CheckAdjacent(mySpace, myTree, Left)...)
+	neighbors = append(neighbors, CheckAdjacent(mySpace, myTree, Right)...)
+	neighbors = append(neighbors, CheckAdjacent(mySpace, myTree, UpLeft)...)
+	neighbors = append(neighbors, CheckAdjacent(mySpace, myTree, UpRight)...)
+	neighbors = append(neighbors, CheckAdjacent(mySpace, myTree, DownLeft)...)
+	neighbors = append(neighbors, CheckAdjacent(mySpace, myTree, DownRight)...)
+
+	for _, neighbor := range neighbors {
+		// 1. Look up the core entity using Oak's event handler registry
+		ent := event.DefaultCallerMap.GetEntity(neighbor.CID)
+		if ent == nil {
+			continue
+		}
+
+		// 2. Type-assert to your custom game struct
+		if ent, ok := ent.(*entities.Entity); ok {
+			// You now have access to your custom struct fields!
+			print(ent.CallerID)
+		}
+	}
+}
+
+// CheckAdjacent looks for a non-overlapping space directly touching the current space
+// in the specified cardinal direction. Returns the adjacent space found, or nil.
+func CheckAdjacent(mySpace *collision.Space, myTree *collision.Tree, dir Direction) []AdjacentResult {
+	if mySpace == nil {
+		return nil
+	}
+
+	// 1. Get current boundaries
+	x, y := mySpace.X(), mySpace.Y()
+	w, h := mySpace.W(), mySpace.H()
+
+	var scanSpace *collision.Space
+
+	// 2. Project a 1-pixel wide/tall checking box right outside the border
+	switch dir {
+	case Up:
+		// Directly above the top border
+		scanSpace = collision.NewUnassignedSpace(x, y-1, w, 1)
+	case Down:
+		// Directly below the bottom border
+		scanSpace = collision.NewUnassignedSpace(x, y+h, w, 1)
+	case Left:
+		// Directly left of the left border
+		scanSpace = collision.NewUnassignedSpace(x-1, y, 1, h)
+	case Right:
+		// Directly right of the right border
+		scanSpace = collision.NewUnassignedSpace(x+w, y, 1, h)
+	// --- Diagonal Directions (1x1 pixel sensor placed corner-adjacent) ---
+	case UpLeft:
+		// 1 pixel up, 1 pixel left from the top-left corner
+		scanSpace = collision.NewUnassignedSpace(x-1, y-1, 1, 1)
+	case UpRight:
+		// 1 pixel up, 1 pixel right from the top-right corner
+		scanSpace = collision.NewUnassignedSpace(x+w, y-1, 1, 1)
+	case DownLeft:
+		// 1 pixel down, 1 pixel left from the bottom-left corner
+		scanSpace = collision.NewUnassignedSpace(x-1, y+h, 1, 1)
+	case DownRight:
+		// 1 pixel down, 1 pixel right from the bottom-right corner
+		scanSpace = collision.NewUnassignedSpace(x+w, y+h, 1, 1)
+	}
+
+	// 3. Query Oak's default CollisionTree
+	// SearchIntersect returns all spaces overlapping our 1-pixel scan zone
+	// hits := collision.DefaultTree.SearchIntersect(scanSpace.Bounds())
+	hits := myTree.SearchIntersect(scanSpace.Bounds())
+
+	var results []AdjacentResult
+
+	for _, hit := range hits {
+		// Ignore self
+		if hit == mySpace {
+			continue
+
+		}
+
+		fmt.Println(("Hit found!!!!"))
+		// Found a valid, strictly adjacent neighbor!
+
+		results = append(results, AdjacentResult{
+			Space: hit,
+			CID:   hit.CID,
+		})
+		// ProcessNeighbors(scanSpace, myTree)
+		ent := event.DefaultCallerMap.GetEntity(hit.CID)
+		fmt.Printf("%v\n", ent.CID())
+		return results
+	}
+
+	return nil
+}
+
 // CheckAdjacentUsingSpace expands sprite A's collider by 1 pixel on all sides
 // to check if it makes contact with sprite B's space.
 func CheckAdjacentUsingSpace(a, b *entities.Entity) bool {
@@ -154,6 +269,14 @@ func main() {
 			render.Draw(schoonerSprite)
 
 			bulletSprite = render.NewColorBox(8, 8, color.RGBA{R: 255, A: 255})
+
+			for _, saguaro := range saguaros {
+				collision.UpdateSpace(saguaro.X(), saguaro.Y(), 32.0, 32.0, saguaro.Space)
+				if CheckAdjacent(saguaro.Space, ctx.CollisionTree, Up) != nil || CheckAdjacent(saguaro.Space, ctx.CollisionTree, Down) != nil || CheckAdjacent(saguaro.Space, ctx.CollisionTree, Left) != nil || CheckAdjacent(saguaro.Space, ctx.CollisionTree, Right) != nil || CheckAdjacent(saguaro.Space, ctx.CollisionTree, UpLeft) != nil || CheckAdjacent(saguaro.Space, ctx.CollisionTree, UpRight) != nil || CheckAdjacent(saguaro.Space, ctx.CollisionTree, DownLeft) != nil || CheckAdjacent(saguaro.Space, ctx.CollisionTree, DownRight) != nil {
+					fmt.Println("I have a neighbor!!!!!!")
+				}
+			}
+
 			event.Bind(ctx, event.Enter, schooner, func(c *entities.Entity, ev event.EnterPayload) event.Response {
 				bulletHitSaguaro = false
 				var hit *collision.Space
