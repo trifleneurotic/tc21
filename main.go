@@ -47,31 +47,6 @@ type AdjacentResult struct {
 	CID   event.CallerID
 }
 
-func ProcessNeighbors(mySpace *collision.Space, myTree *collision.Tree) {
-	neighbors := CheckAdjacent(mySpace, myTree, Up)
-	neighbors = append(neighbors, CheckAdjacent(mySpace, myTree, Down)...)
-	neighbors = append(neighbors, CheckAdjacent(mySpace, myTree, Left)...)
-	neighbors = append(neighbors, CheckAdjacent(mySpace, myTree, Right)...)
-	neighbors = append(neighbors, CheckAdjacent(mySpace, myTree, UpLeft)...)
-	neighbors = append(neighbors, CheckAdjacent(mySpace, myTree, UpRight)...)
-	neighbors = append(neighbors, CheckAdjacent(mySpace, myTree, DownLeft)...)
-	neighbors = append(neighbors, CheckAdjacent(mySpace, myTree, DownRight)...)
-
-	for _, neighbor := range neighbors {
-		// 1. Look up the core entity using Oak's event handler registry
-		ent := event.DefaultCallerMap.GetEntity(neighbor.CID)
-		if ent == nil {
-			continue
-		}
-
-		// 2. Type-assert to your custom game struct
-		if ent, ok := ent.(*entities.Entity); ok {
-			// You now have access to your custom struct fields!
-			print(ent.CallerID)
-		}
-	}
-}
-
 // CheckAdjacent looks for a non-overlapping space directly touching the current space
 // in the specified cardinal direction. Returns the adjacent space found, or nil.
 func CheckAdjacent(mySpace *collision.Space, myTree *collision.Tree, dir Direction) []AdjacentResult {
@@ -135,7 +110,7 @@ func CheckAdjacent(mySpace *collision.Space, myTree *collision.Tree, dir Directi
 			Space: hit,
 			CID:   hit.CID,
 		})
-		// ProcessNeighbors(scanSpace, myTree)
+
 		ent := event.DefaultCallerMap.GetEntity(hit.CID)
 		fmt.Printf("%v\n", ent.CID())
 		return results
