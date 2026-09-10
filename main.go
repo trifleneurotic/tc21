@@ -234,6 +234,8 @@ func main() {
 
 			saguaroSprite, err := render.LoadSprite(filepath.Join("assets/images/saguaro1.png"))
 
+			var pairMade = false
+
 			for i := 0; i < 10; i++ {
 				saguaroX := rand.IntN(saguaroGridXMax)
 				saguaroY := rand.IntN(saguaroGridYMax)
@@ -246,6 +248,39 @@ func main() {
 						saguaroX = rand.IntN(saguaroGridXMax)
 						saguaroY = rand.IntN(saguaroGridYMax)
 					}
+				}
+			}
+
+			for i, row := range saguaroGrid {
+				pairMade = false
+				// Inner loop gets the column index (j) and the actual element value
+				for j, val := range row {
+					if val == 1 && !hasNeighbors(saguaroGrid, i, j) {
+						dirIndex := rand.IntN(8)
+
+						saguaroIndexX := i + (directions[dirIndex][0])
+						saguaroIndexY := j + (directions[dirIndex][1])
+
+						fmt.Printf("ij -> %v %v\n", saguaroIndexX, saguaroIndexY)
+
+						if saguaroIndexX == -1 {
+							saguaroIndexX = 0
+						}
+
+						if saguaroIndexY == -1 {
+							saguaroIndexY = 0
+						}
+
+						fmt.Printf("saguaro index -> %v %v\n", saguaroIndexX, saguaroIndexY)
+
+						saguaroGrid[saguaroIndexX][saguaroIndexY] = 1
+						pairMade = true
+						fmt.Println("pair made!!!!")
+						break
+					}
+				}
+				if pairMade {
+					break
 				}
 			}
 
