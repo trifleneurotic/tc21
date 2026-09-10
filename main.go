@@ -42,6 +42,45 @@ const (
 	DownRight
 )
 
+// Direction offset pairs for all 8 neighbors (Row, Column)
+var directions = [][2]int{
+	{-1, -1}, {-1, 0}, {-1, 1}, // Top-left, Top, Top-right
+	{0, -1}, {0, 1}, // Left,      Right
+	{1, -1}, {1, 0}, {1, 1}, // Bottom-left, Bottom, Bottom-right
+}
+
+// hasNeighbors checks if an element at (r, c) has any neighbors.
+// In a fully populated grid, elements always have neighbors unless the grid is 1x1.
+// This function prints the neighbors found.
+func hasNeighbors(grid [][]int, r, c int) bool {
+	rows := len(grid)
+	if rows == 0 {
+		return false
+	}
+	cols := len(grid[0])
+
+	// Validate if the starting point itself is inside the grid
+	if r < 0 || r >= rows || c < 0 || c >= cols {
+		return false
+	}
+
+	foundNeighbor := false
+
+	// Loop through all 8 possible directions
+	for _, d := range directions {
+		newRow := r + d[0]
+		newCol := c + d[1]
+
+		// Bound checking: Ensure the neighbor is inside the grid
+		if newRow >= 0 && newRow < rows && newCol >= 0 && newCol < cols && grid[newRow][newCol] == 1 {
+			foundNeighbor = true
+			fmt.Printf("Neighbor found at [%d][%d] with value: %d\n", newRow, newCol, grid[newRow][newCol])
+		}
+	}
+
+	return foundNeighbor
+}
+
 type AdjacentResult struct {
 	Space *collision.Space
 	CID   event.CallerID
@@ -200,7 +239,7 @@ func main() {
 				saguaroY := rand.IntN(saguaroGridYMax)
 				saguaroFound := false
 				for !saguaroFound {
-					if saguaroGrid[saguaroX][saguaroY] == 0 {
+					if saguaroGrid[saguaroX][saguaroY] == 0 && !hasNeighbors(saguaroGrid, saguaroX, saguaroY) {
 						saguaroGrid[saguaroX][saguaroY] = 1
 						saguaroFound = true
 					} else {
