@@ -42,11 +42,50 @@ const (
 	DownRight
 )
 
+var (
+	enemySpawnEvent  = event.RegisterEvent[*scene.Context]()
+	enemyActionReady = event.RegisterEvent[*Enemy]()
+)
+
+var enemyIDCounter = 30
+
+type Enemy struct {
+	*entities.Entity
+	ID int
+}
+
 // Direction offset pairs for all 8 neighbors (Row, Column)
 var directions = [][2]int{
 	{-1, -1}, {-1, 0}, {-1, 1}, // Top-left, Top, Top-right
 	{0, -1}, {0, 1}, // Left,      Right
 	{1, -1}, {1, 0}, {1, 1}, // Bottom-left, Bottom, Bottom-right
+}
+
+func spawnEnemyWithAdHocTimer(ctx *scene.Context) {
+
+	enemyIDCounter++
+	currentID := enemyIDCounter
+
+	fmt.Printf("Spawning Enemy and initiating an ad-hoc 3-second timer...(%v)\n", currentID)
+
+	morgSprite := render.NewColorBox(32, 32, color.RGBA{R: 255, A: 255})
+
+	baseEntity := entities.New(ctx,
+		entities.WithRenderable(morgSprite),
+		entities.WithDrawLayers([]int{1}),
+	)
+
+	// Wrap inside our custom enemy struct
+	newEnemy := &Enemy{
+		Entity: baseEntity,
+		ID:     currentID,
+	}
+
+	// 2. AD-HOC TIMER: Start a non-blocking 3-second delay right now for THIS enemy
+	time.AfterFunc(3*time.Second, func() {
+		// Hand the execution back off to Oak's thread-safe loop, tracking this exact enemy pointer
+		event.DefaultBus.Trigger(enemyActionReady.UnsafeEventID, newEnemy)
+	})
 }
 
 // hasNeighbors checks if an element at (r, c) has any neighbors.
@@ -199,6 +238,31 @@ func main() {
 
 				return 0
 			})
+
+			// 1. GLOBAL BINDER: Listens for any enemy's ad-hoc timer to finish
+			event.GlobalBind(ctx, enemyActionReady, func(enemy *Enemy) event.Response {
+				// Execute the delayed main-thread action (e.g., flash color, shoot, jump)
+				fmt.Printf("[Main Loop] Enemy #%d's 3-second timer fired! Executing action.\n", enemy.ID)
+				return 0
+			})
+
+			event.GlobalBind(ctx, enemySpawnEvent, func(c *scene.Context) event.Response {
+				spawnEnemyWithAdHocTimer(ctx)
+				return 0
+			})
+
+			go func() {
+				ticker := time.NewTicker(13 * time.Second)
+				defer ticker.Stop()
+				for {
+					select {
+					case <-ticker.C:
+						event.DefaultBus.Trigger(enemySpawnEvent.UnsafeEventID, ctx)
+					case <-ctx.Done():
+						return
+					}
+				}
+			}()
 
 			var leftPressed bool
 			var rightPressed bool
