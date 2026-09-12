@@ -48,6 +48,7 @@ var (
 )
 
 var enemyIDCounter = 30
+var pairedSaguaros = []*entities.Entity{}
 
 type Enemy struct {
 	*entities.Entity
@@ -68,7 +69,7 @@ func spawnEnemyWithAdHocTimer(ctx *scene.Context) {
 
 	fmt.Printf("Spawning Enemy and initiating an ad-hoc 3-second timer...(%v)\n", currentID)
 
-	morgSprite := render.NewColorBox(32, 32, color.RGBA{R: 255, A: 255})
+	morgSprite := render.NewColorBox(0, 0, color.RGBA{R: 255, A: 255})
 
 	baseEntity := entities.New(ctx,
 		entities.WithRenderable(morgSprite),
@@ -81,10 +82,26 @@ func spawnEnemyWithAdHocTimer(ctx *scene.Context) {
 		ID:     currentID,
 	}
 
+	pairedSaguaroIndex := rand.IntN(len(pairedSaguaros))
+	spawnImpending := render.NewColorBox(32, 32, color.RGBA{255, 0, 0, 255})
+	spawnDone := render.NewColorBox(32, 32, color.RGBA{0, 0, 0, 0})
+
+	sw := render.NewSwitch("impend", map[string]render.Modifiable{
+		"spawnDone":      spawnDone,
+		"spawnImpending": spawnImpending,
+	})
+
+	sw.Set("spawnImpending")
+	sw.SetPos(pairedSaguaros[pairedSaguaroIndex].X(), pairedSaguaros[pairedSaguaroIndex].Y())
+	render.Draw(sw)
+
 	// 2. AD-HOC TIMER: Start a non-blocking 3-second delay right now for THIS enemy
 	time.AfterFunc(3*time.Second, func() {
 		// Hand the execution back off to Oak's thread-safe loop, tracking this exact enemy pointer
 		event.DefaultBus.Trigger(enemyActionReady.UnsafeEventID, newEnemy)
+		sw.Set("spawnDone")
+		sw.SetPos(pairedSaguaros[pairedSaguaroIndex].X(), pairedSaguaros[pairedSaguaroIndex].Y())
+		render.Draw(sw)
 	})
 }
 
@@ -300,6 +317,7 @@ func main() {
 
 			var pairMade = false
 
+			// make 10 saguaros, making sure that a saguaro isn't already there
 			for i := 0; i < 10; i++ {
 				saguaroX := rand.IntN(saguaroGridXMax)
 				saguaroY := rand.IntN(saguaroGridYMax)
@@ -317,10 +335,13 @@ func main() {
 
 			for i, row := range saguaroGrid {
 				pairMade = false
-				// Inner loop gets the column index (j) and the actual element value
 				for j, val := range row {
+					// if a saguaro is there and it doesn't have neighbors....
 					if val == 1 && !hasNeighbors(saguaroGrid, i, j) {
+						// ....pick a direction at random....
 						dirIndex := rand.IntN(8)
+
+						saguaroGrid[i][j] = 2
 
 						saguaroIndexX := i + (directions[dirIndex][0])
 						saguaroIndexY := j + (directions[dirIndex][1])
@@ -335,9 +356,17 @@ func main() {
 							saguaroIndexY = 0
 						}
 
-						fmt.Printf("saguaro index -> %v %v\n", saguaroIndexX, saguaroIndexY)
+						if saguaroIndexY == 14 {
+							saguaroIndexY--
+						}
 
-						saguaroGrid[saguaroIndexX][saguaroIndexY] = 1
+						if saguaroIndexX == 14 {
+							saguaroIndexX--
+						}
+
+						fmt.Printf("saguaro index -> %v %v\n", saguaroIndexX, saguaroIndexY)
+						// ...and put a saguaro there to make a single pair only
+						saguaroGrid[saguaroIndexX][saguaroIndexY] = 2
 						pairMade = true
 						fmt.Println("pair made!!!!")
 						break
@@ -350,7 +379,7 @@ func main() {
 
 			for saguaroX := 0; saguaroX < saguaroGridXMax; saguaroX++ {
 				for saguaroY := 0; saguaroY < saguaroGridYMax; saguaroY++ {
-					if saguaroGrid[saguaroX][saguaroY] == 1 {
+					if saguaroGrid[saguaroX][saguaroY] == 1 || saguaroGrid[saguaroX][saguaroY] == 2 {
 						saguaroCounter++
 						tmp := SaguaroLabel + collision.Label(saguaroCounter)
 						saguaro := entities.New(ctx,
@@ -361,6 +390,10 @@ func main() {
 
 						saguaros = append(saguaros, saguaro)
 						collision.NewLabeledSpace(float64((saguaroX+1)*32.0), float64((saguaroY+1)*32.0), 32, 32, tmp)
+
+						if saguaroGrid[saguaroX][saguaroY] == 2 {
+							pairedSaguaros = append(pairedSaguaros, saguaro)
+						}
 					}
 				}
 			}
