@@ -23,7 +23,7 @@ const GridSize = 4.0
 
 const (
 	SchoonerLabel   collision.Label = 1
-	MorgLabel       collision.Label = 2
+	MorgLabel       collision.Label = 30 + iota
 	TumbleweedLabel collision.Label = 3
 	BulletLabel     collision.Label = 4
 	SaguaroLabel    collision.Label = 20 + iota
@@ -44,16 +44,13 @@ const (
 
 var (
 	enemySpawnEvent  = event.RegisterEvent[*scene.Context]()
-	enemyActionReady = event.RegisterEvent[*Enemy]()
+	enemyActionReady = event.RegisterEvent[*entities.Entity]()
+	morgs            []*entities.Entity
 )
 
 var enemyIDCounter = 30
+var enemyCounter = 0
 var pairedSaguaros = []*entities.Entity{}
-
-type Enemy struct {
-	*entities.Entity
-	ID int
-}
 
 // Direction offset pairs for all 8 neighbors (Row, Column)
 var directions = [][2]int{
@@ -64,23 +61,7 @@ var directions = [][2]int{
 
 func spawnEnemyWithAdHocTimer(ctx *scene.Context) {
 
-	enemyIDCounter++
-	currentID := enemyIDCounter
-
-	fmt.Printf("Spawning Enemy and initiating an ad-hoc 3-second timer...(%v)\n", currentID)
-
-	morgSprite := render.NewColorBox(0, 0, color.RGBA{R: 255, A: 255})
-
-	baseEntity := entities.New(ctx,
-		entities.WithRenderable(morgSprite),
-		entities.WithDrawLayers([]int{1}),
-	)
-
-	// Wrap inside our custom enemy struct
-	newEnemy := &Enemy{
-		Entity: baseEntity,
-		ID:     currentID,
-	}
+	fmt.Printf("Spawning Enemy and initiating an ad-hoc 3-second timer...\n")
 
 	pairedSaguaroIndex := rand.IntN(len(pairedSaguaros))
 	spawnImpending := render.NewColorBox(32, 32, color.RGBA{255, 0, 0, 255})
@@ -97,11 +78,44 @@ func spawnEnemyWithAdHocTimer(ctx *scene.Context) {
 
 	// 2. AD-HOC TIMER: Start a non-blocking 3-second delay right now for THIS enemy
 	time.AfterFunc(3*time.Second, func() {
-		// Hand the execution back off to Oak's thread-safe loop, tracking this exact enemy pointer
-		event.DefaultBus.Trigger(enemyActionReady.UnsafeEventID, newEnemy)
 		sw.Set("spawnDone")
 		sw.SetPos(pairedSaguaros[pairedSaguaroIndex].X(), pairedSaguaros[pairedSaguaroIndex].Y())
 		render.Draw(sw)
+
+		enemyCounter++
+		tmp := MorgLabel + collision.Label(enemyCounter)
+		morg := entities.New(ctx,
+			entities.WithLabel(tmp),
+			entities.WithRenderable(render.NewColorBox(32, 32, color.RGBA{0, 255, 255, 255})),
+		)
+		event.DefaultBus.Trigger(enemyActionReady.UnsafeEventID, morg)
+
+		// spawn Morg
+		if CheckAdjacent(pairedSaguaros[pairedSaguaroIndex].Space, ctx.CollisionTree, Up) == nil {
+			morg.Renderable.SetPos(pairedSaguaros[pairedSaguaroIndex].X(), pairedSaguaros[pairedSaguaroIndex].Y()-32.0)
+			collision.UpdateSpace(pairedSaguaros[pairedSaguaroIndex].X(), pairedSaguaros[pairedSaguaroIndex].Y()-32.0, 32, 32, morg.Space)
+		} else if CheckAdjacent(pairedSaguaros[pairedSaguaroIndex].Space, ctx.CollisionTree, Down) == nil {
+			morg.Renderable.SetPos(pairedSaguaros[pairedSaguaroIndex].X(), pairedSaguaros[pairedSaguaroIndex].Y()+32.0)
+			collision.UpdateSpace(pairedSaguaros[pairedSaguaroIndex].X(), pairedSaguaros[pairedSaguaroIndex].Y()+32.0, 32, 32, morg.Space)
+		} else if CheckAdjacent(pairedSaguaros[pairedSaguaroIndex].Space, ctx.CollisionTree, Left) == nil {
+			morg.Renderable.SetPos(pairedSaguaros[pairedSaguaroIndex].X()-32.0, pairedSaguaros[pairedSaguaroIndex].Y())
+			collision.UpdateSpace(pairedSaguaros[pairedSaguaroIndex].X()-32.0, pairedSaguaros[pairedSaguaroIndex].Y(), 32, 32, morg.Space)
+		} else if CheckAdjacent(pairedSaguaros[pairedSaguaroIndex].Space, ctx.CollisionTree, Right) == nil {
+			morg.Renderable.SetPos(pairedSaguaros[pairedSaguaroIndex].X()+32.0, pairedSaguaros[pairedSaguaroIndex].Y())
+			collision.UpdateSpace(pairedSaguaros[pairedSaguaroIndex].X()+32.0, pairedSaguaros[pairedSaguaroIndex].Y(), 32, 32, morg.Space)
+		} else if CheckAdjacent(pairedSaguaros[pairedSaguaroIndex].Space, ctx.CollisionTree, DownLeft) == nil {
+			morg.Renderable.SetPos(pairedSaguaros[pairedSaguaroIndex].X()-32.0, pairedSaguaros[pairedSaguaroIndex].Y()+32.0)
+			collision.UpdateSpace(pairedSaguaros[pairedSaguaroIndex].X()-32.0, pairedSaguaros[pairedSaguaroIndex].Y()+32.0, 32, 32, morg.Space)
+		} else if CheckAdjacent(pairedSaguaros[pairedSaguaroIndex].Space, ctx.CollisionTree, DownRight) == nil {
+			morg.Renderable.SetPos(pairedSaguaros[pairedSaguaroIndex].X()+32.0, pairedSaguaros[pairedSaguaroIndex].Y()+32.0)
+			collision.UpdateSpace(pairedSaguaros[pairedSaguaroIndex].X()+32.0, pairedSaguaros[pairedSaguaroIndex].Y()+32.0, 32, 32, morg.Space)
+		} else if CheckAdjacent(pairedSaguaros[pairedSaguaroIndex].Space, ctx.CollisionTree, UpRight) == nil {
+			morg.Renderable.SetPos(pairedSaguaros[pairedSaguaroIndex].X()+32.0, pairedSaguaros[pairedSaguaroIndex].Y()-32.0)
+			collision.UpdateSpace(pairedSaguaros[pairedSaguaroIndex].X()+32.0, pairedSaguaros[pairedSaguaroIndex].Y()-32.0, 32, 32, morg.Space)
+		} else if CheckAdjacent(pairedSaguaros[pairedSaguaroIndex].Space, ctx.CollisionTree, UpLeft) == nil {
+			morg.Renderable.SetPos(pairedSaguaros[pairedSaguaroIndex].X()-32.0, pairedSaguaros[pairedSaguaroIndex].Y()-32.0)
+			collision.UpdateSpace(pairedSaguaros[pairedSaguaroIndex].X()-32.0, pairedSaguaros[pairedSaguaroIndex].Y()-32.0, 32, 32, morg.Space)
+		}
 	})
 }
 
@@ -257,11 +271,6 @@ func main() {
 			})
 
 			// 1. GLOBAL BINDER: Listens for any enemy's ad-hoc timer to finish
-			event.GlobalBind(ctx, enemyActionReady, func(enemy *Enemy) event.Response {
-				// Execute the delayed main-thread action (e.g., flash color, shoot, jump)
-				fmt.Printf("[Main Loop] Enemy #%d's 3-second timer fired! Executing action.\n", enemy.ID)
-				return 0
-			})
 
 			event.GlobalBind(ctx, enemySpawnEvent, func(c *scene.Context) event.Response {
 				spawnEnemyWithAdHocTimer(ctx)
@@ -292,6 +301,7 @@ func main() {
 			var currentRotation float32 = 0.0
 			var bulletAlive bool
 			var bullet *entities.Entity
+			var schooner *entities.Entity
 			var bulletSprite *render.Sprite
 			var lockedBulletDirection float32
 			var saguaroSprite *render.Sprite
@@ -303,6 +313,18 @@ func main() {
 			var bulletHitSaguaro bool
 			var oldBulletX float64
 			var oldBulletY float64
+
+			event.GlobalBind(ctx, enemyActionReady, func(entity *entities.Entity) event.Response {
+				event.Bind(ctx, event.Enter, entity, func(e *entities.Entity, f event.EnterPayload) event.Response {
+					pt := floatgeom.Point2{e.X(), e.Y()}
+					pt2 := floatgeom.Point2{schooner.X(), schooner.Y()}
+					delta := pt2.Sub(pt).Normalize().MulConst(32.0 * float64(f.SinceLastFrame.Seconds()))
+					entity.ShiftPos(delta.X(), delta.Y())
+					entity.Space.Update(entity.X(), entity.Y(), 32, 32)
+					return 0
+				})
+				return 0
+			})
 
 			saguaroGridXMax = 20
 			saguaroGridYMax = 14
@@ -406,7 +428,7 @@ func main() {
 			if err != nil {
 				panic(err)
 			}
-			schooner := entities.New(ctx,
+			schooner = entities.New(ctx,
 				entities.WithRenderable(schoonerSprite),
 				entities.WithPosition(floatgeom.Point2{0, 0}),
 				entities.WithLabel(SchoonerLabel),
