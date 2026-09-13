@@ -23,7 +23,7 @@ const GridSize = 4.0
 
 const (
 	SchoonerLabel   collision.Label = 1
-	MorgLabel       collision.Label = 30 + iota
+	MorgLabel       collision.Label = 50 + iota
 	TumbleweedLabel collision.Label = 3
 	BulletLabel     collision.Label = 4
 	SaguaroLabel    collision.Label = 20 + iota
@@ -116,6 +116,7 @@ func spawnEnemyWithAdHocTimer(ctx *scene.Context) {
 			morg.Renderable.SetPos(pairedSaguaros[pairedSaguaroIndex].X()-32.0, pairedSaguaros[pairedSaguaroIndex].Y()-32.0)
 			collision.UpdateSpace(pairedSaguaros[pairedSaguaroIndex].X()-32.0, pairedSaguaros[pairedSaguaroIndex].Y()-32.0, 32, 32, morg.Space)
 		}
+		morgs = append(morgs, morg)
 	})
 }
 
@@ -315,14 +316,6 @@ func main() {
 			var oldBulletY float64
 
 			event.GlobalBind(ctx, enemyActionReady, func(entity *entities.Entity) event.Response {
-				event.Bind(ctx, event.Enter, entity, func(e *entities.Entity, f event.EnterPayload) event.Response {
-					pt := floatgeom.Point2{e.X(), e.Y()}
-					pt2 := floatgeom.Point2{schooner.X(), schooner.Y()}
-					delta := pt2.Sub(pt).Normalize().MulConst(32.0 * float64(f.SinceLastFrame.Seconds()))
-					entity.ShiftPos(delta.X(), delta.Y())
-					entity.Space.Update(entity.X(), entity.Y(), 32, 32)
-					return 0
-				})
 				return 0
 			})
 
@@ -371,11 +364,11 @@ func main() {
 						fmt.Printf("ij -> %v %v\n", saguaroIndexX, saguaroIndexY)
 
 						if saguaroIndexX == -1 {
-							saguaroIndexX = 0
+							saguaroIndexX = 1
 						}
 
 						if saguaroIndexY == -1 {
-							saguaroIndexY = 0
+							saguaroIndexY = 1
 						}
 
 						if saguaroIndexY == 14 {
@@ -444,11 +437,28 @@ func main() {
 					fmt.Println("I have a neighbor!!!!!!")
 				}
 			}
-
-			event.Bind(ctx, event.Enter, schooner, func(c *entities.Entity, ev event.EnterPayload) event.Response {
+			event.GlobalBind(ctx, event.Enter, func(ev event.EnterPayload) event.Response {
 				bulletHitSaguaro = false
 				var hit *collision.Space
 				var bulletHit *collision.Space
+
+				for _, morg := range morgs {
+
+					pt := floatgeom.Point2{morg.X(), morg.Y()}
+					pt2 := floatgeom.Point2{schooner.X(), schooner.Y()}
+					delta := pt2.Sub(pt).Normalize().MulConst(32.0 * ev.SinceLastFrame.Seconds())
+					morg.ShiftPos(delta.X(), delta.Y())
+
+					for _, saguaro := range saguaros {
+						if collision.HitLabel(morg.Space, saguaro.Space.Label) != nil {
+							fmt.Println("####morg hit saguaro####")
+							morg.ShiftPos(-delta.X(), -delta.Y())
+							break
+						}
+					}
+					collision.UpdateSpace(morg.X(), morg.Y(), 32.0, 32.0, morg.Space)
+
+				}
 
 				for _, saguaro := range saguaros {
 
