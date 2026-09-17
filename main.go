@@ -6,6 +6,7 @@ import (
 	"image/color"
 	"math/rand/v2"
 	"path/filepath"
+	"slices"
 	"time"
 
 	"github.com/oakmound/oak/v4"
@@ -441,6 +442,9 @@ func main() {
 				bulletHitSaguaro = false
 				var hit *collision.Space
 				var bulletHit *collision.Space
+				var idxMorg int
+
+				idxMorg = -1
 
 				for _, saguaro := range saguaros {
 
@@ -472,8 +476,7 @@ func main() {
 
 				}
 
-				for _, morg := range morgs {
-
+				for idx, morg := range morgs {
 					pt := floatgeom.Point2{morg.X(), morg.Y()}
 					pt2 := floatgeom.Point2{schooner.X(), schooner.Y()}
 					delta := pt2.Sub(pt).Normalize().MulConst(32.0 * ev.SinceLastFrame.Seconds())
@@ -489,6 +492,29 @@ func main() {
 							break
 						}
 					}
+
+					if bulletAlive {
+						collision.UpdateSpace(bullet.X(), bullet.Y(), 8.0, 8.0, bullet.Space)
+						bulletHit = collision.HitLabel(morg.Space, bullet.Space.Label)
+
+						if bulletHit != nil {
+							collision.UpdateSpace(oldBulletX, oldBulletY, 8.0, 8.0, bullet.Space)
+							fmt.Println("UNDRAWING BULLET AND MORG")
+							bulletSprite.Undraw()
+							morg.Renderable.Undraw()
+							if bullet != nil {
+								bullet = nil
+							}
+							bulletAlive = false
+							idxMorg = idx
+						}
+
+					}
+				}
+
+				if idxMorg > -1 {
+					fmt.Println("%v %v", idxMorg, len(morgs))
+					morgs = slices.Delete(morgs, idxMorg, idxMorg+1)
 				}
 
 				if oak.IsDown(key.A) {
