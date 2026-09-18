@@ -28,6 +28,7 @@ const (
 	TumbleweedLabel collision.Label = 3
 	BulletLabel     collision.Label = 4
 	SaguaroLabel    collision.Label = 20 + iota
+	PairLabel       collision.Label = 80 + iota
 )
 
 type Direction int
@@ -52,6 +53,7 @@ var (
 var enemyIDCounter = 30
 var enemyCounter = 0
 var pairedSaguaros = []*entities.Entity{}
+var saguaroPairs = map[int][]*entities.Entity{}
 
 // Direction offset pairs for all 8 neighbors (Row, Column)
 var directions = [][2]int{
@@ -310,11 +312,14 @@ func main() {
 			var saguaroGridXMax int
 			var saguaroGridYMax int
 			var saguaroCounter int = 0
+			var pairCounter int = 0
 			var oldSchoonerPosX float64
 			var oldSchoonerPosY float64
 			var bulletHitSaguaro bool
 			var oldBulletX float64
 			var oldBulletY float64
+
+			saguaroPairs = make(map[int][]*entities.Entity)
 
 			event.GlobalBind(ctx, enemyActionReady, func(entity *entities.Entity) event.Response {
 				return 0
@@ -357,7 +362,9 @@ func main() {
 						// ....pick a direction at random....
 						dirIndex := rand.IntN(8)
 
-						saguaroGrid[i][j] = 2
+						pairCounter++
+
+						saguaroGrid[i][j] = int(PairLabel) + pairCounter
 
 						saguaroIndexX := i + (directions[dirIndex][0])
 						saguaroIndexY := j + (directions[dirIndex][1])
@@ -382,9 +389,9 @@ func main() {
 
 						fmt.Printf("saguaro index -> %v %v\n", saguaroIndexX, saguaroIndexY)
 						// ...and put a saguaro there to make a single pair only
-						saguaroGrid[saguaroIndexX][saguaroIndexY] = 2
+						saguaroGrid[saguaroIndexX][saguaroIndexY] = int(PairLabel) + pairCounter
 						pairMade = true
-						fmt.Println("pair made!!!!")
+						fmt.Printf("pair made!!!! %v\n", saguaroGrid[saguaroIndexX][saguaroIndexY])
 						break
 					}
 				}
@@ -395,7 +402,7 @@ func main() {
 
 			for saguaroX := 0; saguaroX < saguaroGridXMax; saguaroX++ {
 				for saguaroY := 0; saguaroY < saguaroGridYMax; saguaroY++ {
-					if saguaroGrid[saguaroX][saguaroY] == 1 || saguaroGrid[saguaroX][saguaroY] == 2 {
+					if saguaroGrid[saguaroX][saguaroY] == 1 || saguaroGrid[saguaroX][saguaroY] >= 80 {
 						saguaroCounter++
 						tmp := SaguaroLabel + collision.Label(saguaroCounter)
 						saguaro := entities.New(ctx,
@@ -407,8 +414,17 @@ func main() {
 						saguaros = append(saguaros, saguaro)
 						// collision.NewLabeledSpace(float64((saguaroX+1)*32.0), float64((saguaroY+1)*32.0), 32, 32, tmp)
 
-						if saguaroGrid[saguaroX][saguaroY] == 2 {
+						if saguaroGrid[saguaroX][saguaroY] >= 80 {
+							fmt.Println("adding pair..........")
 							pairedSaguaros = append(pairedSaguaros, saguaro)
+
+							saguaro.Space.Label = collision.Label(saguaroGrid[saguaroX][saguaroY])
+
+							pairID := saguaroGrid[saguaroX][saguaroY]
+							if _, ok := saguaroPairs[pairID]; !ok {
+								saguaroPairs[pairID] = []*entities.Entity{}
+							}
+							saguaroPairs[pairID] = append(saguaroPairs[pairID], saguaro)
 						}
 					}
 				}
