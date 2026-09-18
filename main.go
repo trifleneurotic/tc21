@@ -514,6 +514,32 @@ func main() {
 						bulletHit = collision.HitLabel(morg.Space, bullet.Space.Label)
 
 						if bulletHit != nil {
+
+							for k, v := range saguaroPairs {
+								newSaguaros := []*entities.Entity{}
+								if CheckAdjacentUsingSpace(v[0], morg) || CheckAdjacentUsingSpace(v[1], morg) {
+									// remove from grid
+									v[0].Renderable.Undraw()
+									v[1].Renderable.Undraw()
+
+									for _, saguaro := range saguaros {
+										if k != int(saguaro.Space.Label) {
+											newSaguaros = append(newSaguaros, saguaro)
+										}
+									}
+
+									saguaros = newSaguaros
+
+									for saguaroX := 0; saguaroX < saguaroGridXMax; saguaroX++ {
+										for saguaroY := 0; saguaroY < saguaroGridYMax; saguaroY++ {
+											if saguaroGrid[saguaroX][saguaroY] >= 80 {
+												saguaroGrid[saguaroX][saguaroY] = 0
+											}
+										}
+									}
+								}
+							}
+
 							collision.UpdateSpace(oldBulletX, oldBulletY, 8.0, 8.0, bullet.Space)
 							fmt.Println("UNDRAWING BULLET AND MORG")
 							bulletSprite.Undraw()
