@@ -149,7 +149,7 @@ func hasNeighbors(grid [][]int, r, c int) bool {
 		newCol := c + d[1]
 
 		// Bound checking: Ensure the neighbor is inside the grid
-		if newRow >= 0 && newRow < rows && newCol >= 0 && newCol < cols && grid[newRow][newCol] == 1 {
+		if newRow >= 0 && newRow < rows && newCol >= 0 && newCol < cols && (grid[newRow][newCol] == 1 || grid[newRow][newCol] == 77) {
 			foundNeighbor = true
 			fmt.Printf("Neighbor found at [%d][%d] with value: %d\n", newRow, newCol, grid[newRow][newCol])
 		}
@@ -337,6 +337,15 @@ func main() {
 			}
 			saguaros := []*entities.Entity{}
 
+			safeZoneXEnd := 12
+			safeZoneYEnd := 10
+
+			for safeZoneXStart := 7; safeZoneXStart <= safeZoneXEnd; safeZoneXStart++ {
+				for safeZoneYStart := 5; safeZoneYStart <= safeZoneYEnd; safeZoneYStart++ {
+					saguaroGrid[safeZoneXStart][safeZoneYStart] = 77
+				}
+			}
+
 			saguaroSprite, err := render.LoadSprite(filepath.Join("assets/images/saguaro1.png"))
 
 			var pairMade = false
@@ -345,6 +354,7 @@ func main() {
 			for i := 0; i < 10; i++ {
 				saguaroX := rand.IntN(saguaroGridXMax)
 				saguaroY := rand.IntN(saguaroGridYMax)
+
 				saguaroFound := false
 				for !saguaroFound {
 					if saguaroGrid[saguaroX][saguaroY] == 0 && !hasNeighbors(saguaroGrid, saguaroX, saguaroY) {
@@ -353,6 +363,7 @@ func main() {
 					} else {
 						saguaroX = rand.IntN(saguaroGridXMax)
 						saguaroY = rand.IntN(saguaroGridYMax)
+
 					}
 				}
 			}
@@ -431,6 +442,13 @@ func main() {
 							}
 							saguaroPairs[pairID] = append(saguaroPairs[pairID], saguaro)
 						}
+					}
+					if saguaroGrid[saguaroX][saguaroY] == 77 {
+						entities.New(ctx,
+							entities.WithRenderable(render.NewColorBox(32, 32, color.RGBA{255, 255, 0, 255})),
+							entities.WithPosition(floatgeom.Point2{float64((saguaroX + 1) * 32.0), float64((saguaroY + 1) * 32.0)}),
+						)
+
 					}
 				}
 			}
@@ -519,7 +537,6 @@ func main() {
 						bulletHit = collision.HitLabel(morg.Space, bullet.Space.Label)
 
 						if bulletHit != nil {
-							pt := floatgeom.Point2{}
 							var pairHit bool
 							var toRemove int
 							for k, v := range saguaroPairs {
@@ -551,28 +568,32 @@ func main() {
 								}
 							}
 
+							if pairHit {
+								delete(saguaroPairs, toRemove)
+								fmt.Printf("+++++saguaroPairs length %v", len(saguaroPairs))
+							}
+
 							collision.UpdateSpace(oldBulletX, oldBulletY, 8.0, 8.0, bullet.Space)
-							fmt.Println("UNDRAWING BULLET AND MORG")
+							fmt.Println("UNDRAWING BULLET AND REPLACING MORG")
 							bulletSprite.Undraw()
+
+							saguaroCounter++
+							tmp := SaguaroLabel + collision.Label(saguaroCounter)
+							s := entities.New(ctx,
+								entities.WithRenderable(saguaroSprite.Copy()),
+								entities.WithPosition(floatgeom.Point2{morg.X(), morg.Y()}),
+								entities.WithLabel(tmp),
+							)
+							saguaros = append(saguaros, s)
 							morg.Renderable.Undraw()
+							render.Draw(s.Renderable)
+
 							if bullet != nil {
 								bullet = nil
 							}
 							bulletAlive = false
 							idxMorg = idx
 
-							if pairHit {
-								tmp := SaguaroLabel + collision.Label(saguaroCounter)
-								s := entities.New(ctx,
-									entities.WithRenderable(saguaroSprite.Copy()),
-									entities.WithPosition(floatgeom.Point2{pt.X(), pt.Y()}),
-									entities.WithLabel(tmp),
-								)
-								saguaros = append(saguaros, s)
-								render.Draw(s.Renderable)
-								delete(saguaroPairs, toRemove)
-								fmt.Printf("^^^^^ length saguaroPairs %v", len(saguaroPairs))
-							}
 						}
 
 					}
