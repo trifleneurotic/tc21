@@ -52,7 +52,6 @@ var (
 
 var enemyIDCounter = 30
 var enemyCounter = 0
-var pairedSaguaros = []*entities.Entity{}
 var saguaroPairs = map[int][]*entities.Entity{}
 
 // Direction offset pairs for all 8 neighbors (Row, Column)
@@ -66,7 +65,15 @@ func spawnEnemyWithAdHocTimer(ctx *scene.Context) {
 	if len(saguaroPairs) > 0 {
 		fmt.Printf("Spawning Enemy and initiating an ad-hoc 3-second timer...\n")
 
-		pairedSaguaroIndex := rand.IntN(len(pairedSaguaros))
+		keys := make([]int, 0, len(saguaroPairs))
+		for k := range saguaroPairs {
+			keys = append(keys, k)
+		}
+
+		randomKey := keys[rand.IntN(len(keys))]
+		randomPair := saguaroPairs[randomKey]
+		randomIndex := rand.IntN(2)
+
 		spawnImpending := render.NewColorBox(32, 32, color.RGBA{255, 0, 0, 255})
 		spawnDone := render.NewColorBox(32, 32, color.RGBA{0, 0, 0, 0})
 
@@ -76,13 +83,13 @@ func spawnEnemyWithAdHocTimer(ctx *scene.Context) {
 		})
 
 		sw.Set("spawnImpending")
-		sw.SetPos(pairedSaguaros[pairedSaguaroIndex].X(), pairedSaguaros[pairedSaguaroIndex].Y())
+		sw.SetPos(randomPair[randomIndex].X(), randomPair[randomIndex].Y())
 		render.Draw(sw)
 
 		// 2. AD-HOC TIMER: Start a non-blocking 3-second delay right now for THIS enemy
 		time.AfterFunc(3*time.Second, func() {
 			sw.Set("spawnDone")
-			sw.SetPos(pairedSaguaros[pairedSaguaroIndex].X(), pairedSaguaros[pairedSaguaroIndex].Y())
+			sw.SetPos(randomPair[randomIndex].X(), randomPair[randomIndex].Y())
 			render.Draw(sw)
 
 			enemyCounter++
@@ -94,30 +101,30 @@ func spawnEnemyWithAdHocTimer(ctx *scene.Context) {
 			event.DefaultBus.Trigger(enemyActionReady.UnsafeEventID, morg)
 
 			// spawn Morg
-			if CheckAdjacent(pairedSaguaros[pairedSaguaroIndex].Space, ctx.CollisionTree, Up) == nil {
-				morg.SetPos(floatgeom.Point2{pairedSaguaros[pairedSaguaroIndex].X(), pairedSaguaros[pairedSaguaroIndex].Y() - 32.0})
-				collision.UpdateSpace(pairedSaguaros[pairedSaguaroIndex].X(), pairedSaguaros[pairedSaguaroIndex].Y()-32.0, 32, 32, morg.Space)
-			} else if CheckAdjacent(pairedSaguaros[pairedSaguaroIndex].Space, ctx.CollisionTree, Down) == nil {
-				morg.SetPos(floatgeom.Point2{pairedSaguaros[pairedSaguaroIndex].X(), pairedSaguaros[pairedSaguaroIndex].Y() + 32.0})
-				collision.UpdateSpace(pairedSaguaros[pairedSaguaroIndex].X(), pairedSaguaros[pairedSaguaroIndex].Y()+32.0, 32, 32, morg.Space)
-			} else if CheckAdjacent(pairedSaguaros[pairedSaguaroIndex].Space, ctx.CollisionTree, Left) == nil {
-				morg.SetPos(floatgeom.Point2{pairedSaguaros[pairedSaguaroIndex].X() - 32.0, pairedSaguaros[pairedSaguaroIndex].Y()})
-				collision.UpdateSpace(pairedSaguaros[pairedSaguaroIndex].X()-32.0, pairedSaguaros[pairedSaguaroIndex].Y(), 32, 32, morg.Space)
-			} else if CheckAdjacent(pairedSaguaros[pairedSaguaroIndex].Space, ctx.CollisionTree, Right) == nil {
-				morg.SetPos(floatgeom.Point2{pairedSaguaros[pairedSaguaroIndex].X() + 32.0, pairedSaguaros[pairedSaguaroIndex].Y()})
-				collision.UpdateSpace(pairedSaguaros[pairedSaguaroIndex].X()+32.0, pairedSaguaros[pairedSaguaroIndex].Y(), 32, 32, morg.Space)
-			} else if CheckAdjacent(pairedSaguaros[pairedSaguaroIndex].Space, ctx.CollisionTree, DownLeft) == nil {
-				morg.SetPos(floatgeom.Point2{pairedSaguaros[pairedSaguaroIndex].X() - 32.0, pairedSaguaros[pairedSaguaroIndex].Y() + 32.0})
-				collision.UpdateSpace(pairedSaguaros[pairedSaguaroIndex].X()-32.0, pairedSaguaros[pairedSaguaroIndex].Y()+32.0, 32, 32, morg.Space)
-			} else if CheckAdjacent(pairedSaguaros[pairedSaguaroIndex].Space, ctx.CollisionTree, DownRight) == nil {
-				morg.SetPos(floatgeom.Point2{pairedSaguaros[pairedSaguaroIndex].X() + 32.0, pairedSaguaros[pairedSaguaroIndex].Y() + 32.0})
-				collision.UpdateSpace(pairedSaguaros[pairedSaguaroIndex].X()+32.0, pairedSaguaros[pairedSaguaroIndex].Y()+32.0, 32, 32, morg.Space)
-			} else if CheckAdjacent(pairedSaguaros[pairedSaguaroIndex].Space, ctx.CollisionTree, UpRight) == nil {
-				morg.SetPos(floatgeom.Point2{pairedSaguaros[pairedSaguaroIndex].X() + 32.0, pairedSaguaros[pairedSaguaroIndex].Y() - 32.0})
-				collision.UpdateSpace(pairedSaguaros[pairedSaguaroIndex].X()+32.0, pairedSaguaros[pairedSaguaroIndex].Y()-32.0, 32, 32, morg.Space)
-			} else if CheckAdjacent(pairedSaguaros[pairedSaguaroIndex].Space, ctx.CollisionTree, UpLeft) == nil {
-				morg.SetPos(floatgeom.Point2{pairedSaguaros[pairedSaguaroIndex].X() - 32.0, pairedSaguaros[pairedSaguaroIndex].Y() - 32.0})
-				collision.UpdateSpace(pairedSaguaros[pairedSaguaroIndex].X()-32.0, pairedSaguaros[pairedSaguaroIndex].Y()-32.0, 32, 32, morg.Space)
+			if CheckAdjacent(randomPair[randomIndex].Space, ctx.CollisionTree, Up) == nil {
+				morg.SetPos(floatgeom.Point2{randomPair[randomIndex].X(), randomPair[randomIndex].Y() - 32.0})
+				collision.UpdateSpace(randomPair[randomIndex].X(), randomPair[randomIndex].Y()-32.0, 32, 32, morg.Space)
+			} else if CheckAdjacent(randomPair[randomIndex].Space, ctx.CollisionTree, Down) == nil {
+				morg.SetPos(floatgeom.Point2{randomPair[randomIndex].X(), randomPair[randomIndex].Y() + 32.0})
+				collision.UpdateSpace(randomPair[randomIndex].X(), randomPair[randomIndex].Y()+32.0, 32, 32, morg.Space)
+			} else if CheckAdjacent(randomPair[randomIndex].Space, ctx.CollisionTree, Left) == nil {
+				morg.SetPos(floatgeom.Point2{randomPair[randomIndex].X() - 32.0, randomPair[randomIndex].Y()})
+				collision.UpdateSpace(randomPair[randomIndex].X()-32.0, randomPair[randomIndex].Y(), 32, 32, morg.Space)
+			} else if CheckAdjacent(randomPair[randomIndex].Space, ctx.CollisionTree, Right) == nil {
+				morg.SetPos(floatgeom.Point2{randomPair[randomIndex].X() + 32.0, randomPair[randomIndex].Y()})
+				collision.UpdateSpace(randomPair[randomIndex].X()+32.0, randomPair[randomIndex].Y(), 32, 32, morg.Space)
+			} else if CheckAdjacent(randomPair[randomIndex].Space, ctx.CollisionTree, DownLeft) == nil {
+				morg.SetPos(floatgeom.Point2{randomPair[randomIndex].X() - 32.0, randomPair[randomIndex].Y() + 32.0})
+				collision.UpdateSpace(randomPair[randomIndex].X()-32.0, randomPair[randomIndex].Y()+32.0, 32, 32, morg.Space)
+			} else if CheckAdjacent(randomPair[randomIndex].Space, ctx.CollisionTree, DownRight) == nil {
+				morg.SetPos(floatgeom.Point2{randomPair[randomIndex].X() + 32.0, randomPair[randomIndex].Y() + 32.0})
+				collision.UpdateSpace(randomPair[randomIndex].X()+32.0, randomPair[randomIndex].Y()+32.0, 32, 32, morg.Space)
+			} else if CheckAdjacent(randomPair[randomIndex].Space, ctx.CollisionTree, UpRight) == nil {
+				morg.SetPos(floatgeom.Point2{randomPair[randomIndex].X() + 32.0, randomPair[randomIndex].Y() - 32.0})
+				collision.UpdateSpace(randomPair[randomIndex].X()+32.0, randomPair[randomIndex].Y()-32.0, 32, 32, morg.Space)
+			} else if CheckAdjacent(randomPair[randomIndex].Space, ctx.CollisionTree, UpLeft) == nil {
+				morg.SetPos(floatgeom.Point2{randomPair[randomIndex].X() - 32.0, randomPair[randomIndex].Y() - 32.0})
+				collision.UpdateSpace(randomPair[randomIndex].X()-32.0, randomPair[randomIndex].Y()-32.0, 32, 32, morg.Space)
 			}
 			morgs = append(morgs, morg)
 		})
@@ -318,7 +325,6 @@ func main() {
 			var pairCounter int = 0
 			var oldSchoonerPosX float64
 			var oldSchoonerPosY float64
-			var bulletHitSaguaro bool
 			var oldBulletX float64
 			var oldBulletY float64
 
@@ -432,7 +438,6 @@ func main() {
 
 						if saguaroGrid[saguaroX][saguaroY] >= 80 {
 							fmt.Println("adding pair..........")
-							pairedSaguaros = append(pairedSaguaros, saguaro)
 
 							saguaro.Space.Label = collision.Label(saguaroGrid[saguaroX][saguaroY])
 
@@ -478,7 +483,6 @@ func main() {
 				}
 			}
 			event.GlobalBind(ctx, event.Enter, func(ev event.EnterPayload) event.Response {
-				bulletHitSaguaro = false
 				var hit *collision.Space
 				var bulletHit *collision.Space
 				var idxMorg int
@@ -491,7 +495,7 @@ func main() {
 
 					hit = collision.HitLabel(schooner.Space, saguaro.Space.Label)
 
-					if bulletAlive && !bulletHitSaguaro {
+					if bulletAlive {
 						collision.UpdateSpace(bullet.X(), bullet.Y(), 8.0, 8.0, bullet.Space)
 						bulletHit = collision.HitLabel(saguaro.Space, bullet.Space.Label)
 
@@ -503,7 +507,6 @@ func main() {
 								bullet = nil
 							}
 							bulletAlive = false
-							bulletHitSaguaro = false
 
 						}
 					}
