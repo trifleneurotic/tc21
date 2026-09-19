@@ -571,38 +571,49 @@ func main() {
 								}
 							}
 
-							if pairHit {
-								delete(saguaroPairs, toRemove)
-								fmt.Printf("+++++saguaroPairs length %v", len(saguaroPairs))
-							}
-
 							collision.UpdateSpace(oldBulletX, oldBulletY, 8.0, 8.0, bullet.Space)
 							fmt.Println("UNDRAWING BULLET AND REPLACING MORG")
 							bulletSprite.Undraw()
 
-							saguaroCounter++
-							tmp := SaguaroLabel + collision.Label(saguaroCounter)
-							s := entities.New(ctx,
-								entities.WithRenderable(saguaroSprite.Copy()),
-								entities.WithPosition(floatgeom.Point2{morg.X(), morg.Y()}),
-								entities.WithLabel(tmp),
-							)
+							if pairHit {
+								enemyCounter++
+								tmp := MorgLabel + collision.Label(enemyCounter)
+								morg.Renderable.Undraw()
+								newMorg := entities.New(ctx,
+									entities.WithLabel(tmp),
+									entities.WithRenderable(render.NewColorBox(32, 32, color.RGBA{0, 255, 255, 255})),
+								)
+								newMorg.SetPos(floatgeom.Point2{saguaroPairs[toRemove][0].X(), saguaroPairs[toRemove][0].Y()})
+								morgs = append(morgs, newMorg)
+								event.DefaultBus.Trigger(enemyActionReady.UnsafeEventID, newMorg)
+								delete(saguaroPairs, toRemove)
+								fmt.Printf("+++++saguaroPairs length %v", len(saguaroPairs))
 
-							collision.UpdateSpace(s.X(), s.Y(), 32.0, 32.0, s.Space)
+							} else {
+								saguaroCounter++
+								tmp := SaguaroLabel + collision.Label(saguaroCounter)
+								s := entities.New(ctx,
+									entities.WithRenderable(saguaroSprite.Copy()),
+									entities.WithPosition(floatgeom.Point2{morg.X(), morg.Y()}),
+									entities.WithLabel(tmp),
+								)
 
-							for _, saguaro := range saguaros {
-								if CheckAdjacentUsingSpace(s, saguaro) {
-									fmt.Println("NNNNNNNNNNNEW PAIR MADE!")
-									pairCounter++
-									saguaroPairs[int(PairLabel)+pairCounter] = []*entities.Entity{}
-									s.Space.Label = PairLabel + collision.Label(pairCounter)
-									saguaro.Space.Label = PairLabel + collision.Label(pairCounter)
-									saguaroPairs[int(PairLabel)+pairCounter] = append(saguaroPairs[int(PairLabel)+pairCounter], s, saguaro)
+								collision.UpdateSpace(s.X(), s.Y(), 32.0, 32.0, s.Space)
+
+								for _, saguaro := range saguaros {
+									if CheckAdjacentUsingSpace(s, saguaro) {
+										fmt.Println("NNNNNNNNNNNEW PAIR MADE!")
+										pairCounter++
+										saguaroPairs[int(PairLabel)+pairCounter] = []*entities.Entity{}
+										s.Space.Label = PairLabel + collision.Label(pairCounter)
+										saguaro.Space.Label = PairLabel + collision.Label(pairCounter)
+										saguaroPairs[int(PairLabel)+pairCounter] = append(saguaroPairs[int(PairLabel)+pairCounter], s, saguaro)
+									}
 								}
+								saguaros = append(saguaros, s)
+								morg.Renderable.Undraw()
+								render.Draw(s.Renderable)
 							}
-							saguaros = append(saguaros, s)
-							morg.Renderable.Undraw()
-							render.Draw(s.Renderable)
 
 							if bullet != nil {
 								bullet = nil
