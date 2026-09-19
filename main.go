@@ -521,7 +521,7 @@ func main() {
 				for idx, morg := range morgs {
 					pt := floatgeom.Point2{morg.X(), morg.Y()}
 					pt2 := floatgeom.Point2{schooner.X(), schooner.Y()}
-					delta := pt2.Sub(pt).Normalize().MulConst(32.0 * ev.SinceLastFrame.Seconds())
+					delta := pt2.Sub(pt).Normalize().MulConst(80.0 * ev.SinceLastFrame.Seconds())
 					morg.ShiftPos(delta.X(), delta.Y())
 					collision.UpdateSpace(morg.X(), morg.Y(), 32.0, 32.0, morg.Space)
 
@@ -587,6 +587,19 @@ func main() {
 								entities.WithPosition(floatgeom.Point2{morg.X(), morg.Y()}),
 								entities.WithLabel(tmp),
 							)
+
+							collision.UpdateSpace(s.X(), s.Y(), 32.0, 32.0, s.Space)
+
+							for _, saguaro := range saguaros {
+								if CheckAdjacentUsingSpace(s, saguaro) {
+									fmt.Println("NNNNNNNNNNNEW PAIR MADE!")
+									pairCounter++
+									saguaroPairs[int(PairLabel)+pairCounter] = []*entities.Entity{}
+									s.Space.Label = PairLabel + collision.Label(pairCounter)
+									saguaro.Space.Label = PairLabel + collision.Label(pairCounter)
+									saguaroPairs[int(PairLabel)+pairCounter] = append(saguaroPairs[int(PairLabel)+pairCounter], s, saguaro)
+								}
+							}
 							saguaros = append(saguaros, s)
 							morg.Renderable.Undraw()
 							render.Draw(s.Renderable)
