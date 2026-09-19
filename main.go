@@ -63,64 +63,67 @@ var directions = [][2]int{
 }
 
 func spawnEnemyWithAdHocTimer(ctx *scene.Context) {
+	if len(saguaroPairs) > 0 {
+		fmt.Printf("Spawning Enemy and initiating an ad-hoc 3-second timer...\n")
 
-	fmt.Printf("Spawning Enemy and initiating an ad-hoc 3-second timer...\n")
+		pairedSaguaroIndex := rand.IntN(len(pairedSaguaros))
+		spawnImpending := render.NewColorBox(32, 32, color.RGBA{255, 0, 0, 255})
+		spawnDone := render.NewColorBox(32, 32, color.RGBA{0, 0, 0, 0})
 
-	pairedSaguaroIndex := rand.IntN(len(pairedSaguaros))
-	spawnImpending := render.NewColorBox(32, 32, color.RGBA{255, 0, 0, 255})
-	spawnDone := render.NewColorBox(32, 32, color.RGBA{0, 0, 0, 0})
+		sw := render.NewSwitch("impend", map[string]render.Modifiable{
+			"spawnDone":      spawnDone,
+			"spawnImpending": spawnImpending,
+		})
 
-	sw := render.NewSwitch("impend", map[string]render.Modifiable{
-		"spawnDone":      spawnDone,
-		"spawnImpending": spawnImpending,
-	})
-
-	sw.Set("spawnImpending")
-	sw.SetPos(pairedSaguaros[pairedSaguaroIndex].X(), pairedSaguaros[pairedSaguaroIndex].Y())
-	render.Draw(sw)
-
-	// 2. AD-HOC TIMER: Start a non-blocking 3-second delay right now for THIS enemy
-	time.AfterFunc(3*time.Second, func() {
-		sw.Set("spawnDone")
+		sw.Set("spawnImpending")
 		sw.SetPos(pairedSaguaros[pairedSaguaroIndex].X(), pairedSaguaros[pairedSaguaroIndex].Y())
 		render.Draw(sw)
 
-		enemyCounter++
-		tmp := MorgLabel + collision.Label(enemyCounter)
-		morg := entities.New(ctx,
-			entities.WithLabel(tmp),
-			entities.WithRenderable(render.NewColorBox(32, 32, color.RGBA{0, 255, 255, 255})),
-		)
-		event.DefaultBus.Trigger(enemyActionReady.UnsafeEventID, morg)
+		// 2. AD-HOC TIMER: Start a non-blocking 3-second delay right now for THIS enemy
+		time.AfterFunc(3*time.Second, func() {
+			sw.Set("spawnDone")
+			sw.SetPos(pairedSaguaros[pairedSaguaroIndex].X(), pairedSaguaros[pairedSaguaroIndex].Y())
+			render.Draw(sw)
 
-		// spawn Morg
-		if CheckAdjacent(pairedSaguaros[pairedSaguaroIndex].Space, ctx.CollisionTree, Up) == nil {
-			morg.SetPos(floatgeom.Point2{pairedSaguaros[pairedSaguaroIndex].X(), pairedSaguaros[pairedSaguaroIndex].Y() - 32.0})
-			collision.UpdateSpace(pairedSaguaros[pairedSaguaroIndex].X(), pairedSaguaros[pairedSaguaroIndex].Y()-32.0, 32, 32, morg.Space)
-		} else if CheckAdjacent(pairedSaguaros[pairedSaguaroIndex].Space, ctx.CollisionTree, Down) == nil {
-			morg.SetPos(floatgeom.Point2{pairedSaguaros[pairedSaguaroIndex].X(), pairedSaguaros[pairedSaguaroIndex].Y() + 32.0})
-			collision.UpdateSpace(pairedSaguaros[pairedSaguaroIndex].X(), pairedSaguaros[pairedSaguaroIndex].Y()+32.0, 32, 32, morg.Space)
-		} else if CheckAdjacent(pairedSaguaros[pairedSaguaroIndex].Space, ctx.CollisionTree, Left) == nil {
-			morg.SetPos(floatgeom.Point2{pairedSaguaros[pairedSaguaroIndex].X() - 32.0, pairedSaguaros[pairedSaguaroIndex].Y()})
-			collision.UpdateSpace(pairedSaguaros[pairedSaguaroIndex].X()-32.0, pairedSaguaros[pairedSaguaroIndex].Y(), 32, 32, morg.Space)
-		} else if CheckAdjacent(pairedSaguaros[pairedSaguaroIndex].Space, ctx.CollisionTree, Right) == nil {
-			morg.SetPos(floatgeom.Point2{pairedSaguaros[pairedSaguaroIndex].X() + 32.0, pairedSaguaros[pairedSaguaroIndex].Y()})
-			collision.UpdateSpace(pairedSaguaros[pairedSaguaroIndex].X()+32.0, pairedSaguaros[pairedSaguaroIndex].Y(), 32, 32, morg.Space)
-		} else if CheckAdjacent(pairedSaguaros[pairedSaguaroIndex].Space, ctx.CollisionTree, DownLeft) == nil {
-			morg.SetPos(floatgeom.Point2{pairedSaguaros[pairedSaguaroIndex].X() - 32.0, pairedSaguaros[pairedSaguaroIndex].Y() + 32.0})
-			collision.UpdateSpace(pairedSaguaros[pairedSaguaroIndex].X()-32.0, pairedSaguaros[pairedSaguaroIndex].Y()+32.0, 32, 32, morg.Space)
-		} else if CheckAdjacent(pairedSaguaros[pairedSaguaroIndex].Space, ctx.CollisionTree, DownRight) == nil {
-			morg.SetPos(floatgeom.Point2{pairedSaguaros[pairedSaguaroIndex].X() + 32.0, pairedSaguaros[pairedSaguaroIndex].Y() + 32.0})
-			collision.UpdateSpace(pairedSaguaros[pairedSaguaroIndex].X()+32.0, pairedSaguaros[pairedSaguaroIndex].Y()+32.0, 32, 32, morg.Space)
-		} else if CheckAdjacent(pairedSaguaros[pairedSaguaroIndex].Space, ctx.CollisionTree, UpRight) == nil {
-			morg.SetPos(floatgeom.Point2{pairedSaguaros[pairedSaguaroIndex].X() + 32.0, pairedSaguaros[pairedSaguaroIndex].Y() - 32.0})
-			collision.UpdateSpace(pairedSaguaros[pairedSaguaroIndex].X()+32.0, pairedSaguaros[pairedSaguaroIndex].Y()-32.0, 32, 32, morg.Space)
-		} else if CheckAdjacent(pairedSaguaros[pairedSaguaroIndex].Space, ctx.CollisionTree, UpLeft) == nil {
-			morg.SetPos(floatgeom.Point2{pairedSaguaros[pairedSaguaroIndex].X() - 32.0, pairedSaguaros[pairedSaguaroIndex].Y() - 32.0})
-			collision.UpdateSpace(pairedSaguaros[pairedSaguaroIndex].X()-32.0, pairedSaguaros[pairedSaguaroIndex].Y()-32.0, 32, 32, morg.Space)
-		}
-		morgs = append(morgs, morg)
-	})
+			enemyCounter++
+			tmp := MorgLabel + collision.Label(enemyCounter)
+			morg := entities.New(ctx,
+				entities.WithLabel(tmp),
+				entities.WithRenderable(render.NewColorBox(32, 32, color.RGBA{0, 255, 255, 255})),
+			)
+			event.DefaultBus.Trigger(enemyActionReady.UnsafeEventID, morg)
+
+			// spawn Morg
+			if CheckAdjacent(pairedSaguaros[pairedSaguaroIndex].Space, ctx.CollisionTree, Up) == nil {
+				morg.SetPos(floatgeom.Point2{pairedSaguaros[pairedSaguaroIndex].X(), pairedSaguaros[pairedSaguaroIndex].Y() - 32.0})
+				collision.UpdateSpace(pairedSaguaros[pairedSaguaroIndex].X(), pairedSaguaros[pairedSaguaroIndex].Y()-32.0, 32, 32, morg.Space)
+			} else if CheckAdjacent(pairedSaguaros[pairedSaguaroIndex].Space, ctx.CollisionTree, Down) == nil {
+				morg.SetPos(floatgeom.Point2{pairedSaguaros[pairedSaguaroIndex].X(), pairedSaguaros[pairedSaguaroIndex].Y() + 32.0})
+				collision.UpdateSpace(pairedSaguaros[pairedSaguaroIndex].X(), pairedSaguaros[pairedSaguaroIndex].Y()+32.0, 32, 32, morg.Space)
+			} else if CheckAdjacent(pairedSaguaros[pairedSaguaroIndex].Space, ctx.CollisionTree, Left) == nil {
+				morg.SetPos(floatgeom.Point2{pairedSaguaros[pairedSaguaroIndex].X() - 32.0, pairedSaguaros[pairedSaguaroIndex].Y()})
+				collision.UpdateSpace(pairedSaguaros[pairedSaguaroIndex].X()-32.0, pairedSaguaros[pairedSaguaroIndex].Y(), 32, 32, morg.Space)
+			} else if CheckAdjacent(pairedSaguaros[pairedSaguaroIndex].Space, ctx.CollisionTree, Right) == nil {
+				morg.SetPos(floatgeom.Point2{pairedSaguaros[pairedSaguaroIndex].X() + 32.0, pairedSaguaros[pairedSaguaroIndex].Y()})
+				collision.UpdateSpace(pairedSaguaros[pairedSaguaroIndex].X()+32.0, pairedSaguaros[pairedSaguaroIndex].Y(), 32, 32, morg.Space)
+			} else if CheckAdjacent(pairedSaguaros[pairedSaguaroIndex].Space, ctx.CollisionTree, DownLeft) == nil {
+				morg.SetPos(floatgeom.Point2{pairedSaguaros[pairedSaguaroIndex].X() - 32.0, pairedSaguaros[pairedSaguaroIndex].Y() + 32.0})
+				collision.UpdateSpace(pairedSaguaros[pairedSaguaroIndex].X()-32.0, pairedSaguaros[pairedSaguaroIndex].Y()+32.0, 32, 32, morg.Space)
+			} else if CheckAdjacent(pairedSaguaros[pairedSaguaroIndex].Space, ctx.CollisionTree, DownRight) == nil {
+				morg.SetPos(floatgeom.Point2{pairedSaguaros[pairedSaguaroIndex].X() + 32.0, pairedSaguaros[pairedSaguaroIndex].Y() + 32.0})
+				collision.UpdateSpace(pairedSaguaros[pairedSaguaroIndex].X()+32.0, pairedSaguaros[pairedSaguaroIndex].Y()+32.0, 32, 32, morg.Space)
+			} else if CheckAdjacent(pairedSaguaros[pairedSaguaroIndex].Space, ctx.CollisionTree, UpRight) == nil {
+				morg.SetPos(floatgeom.Point2{pairedSaguaros[pairedSaguaroIndex].X() + 32.0, pairedSaguaros[pairedSaguaroIndex].Y() - 32.0})
+				collision.UpdateSpace(pairedSaguaros[pairedSaguaroIndex].X()+32.0, pairedSaguaros[pairedSaguaroIndex].Y()-32.0, 32, 32, morg.Space)
+			} else if CheckAdjacent(pairedSaguaros[pairedSaguaroIndex].Space, ctx.CollisionTree, UpLeft) == nil {
+				morg.SetPos(floatgeom.Point2{pairedSaguaros[pairedSaguaroIndex].X() - 32.0, pairedSaguaros[pairedSaguaroIndex].Y() - 32.0})
+				collision.UpdateSpace(pairedSaguaros[pairedSaguaroIndex].X()-32.0, pairedSaguaros[pairedSaguaroIndex].Y()-32.0, 32, 32, morg.Space)
+			}
+			morgs = append(morgs, morg)
+		})
+	} else {
+		fmt.Println("No more pairs!!!!")
+	}
 }
 
 // hasNeighbors checks if an element at (r, c) has any neighbors.
@@ -392,10 +395,12 @@ func main() {
 						saguaroGrid[saguaroIndexX][saguaroIndexY] = int(PairLabel) + pairCounter
 						pairMade = true
 						fmt.Printf("pair made!!!! %v\n", saguaroGrid[saguaroIndexX][saguaroIndexY])
-						break
+						if pairCounter == 2 {
+							break
+						}
 					}
 				}
-				if pairMade {
+				if pairMade && pairCounter == 2 {
 					break
 				}
 			}
@@ -514,13 +519,19 @@ func main() {
 						bulletHit = collision.HitLabel(morg.Space, bullet.Space.Label)
 
 						if bulletHit != nil {
-
+							pt := floatgeom.Point2{}
+							var pairHit bool
+							var toRemove int
 							for k, v := range saguaroPairs {
 								newSaguaros := []*entities.Entity{}
+								pt = floatgeom.Point2{v[0].X(), v[0].Y()}
 								if CheckAdjacentUsingSpace(v[0], morg) || CheckAdjacentUsingSpace(v[1], morg) {
 									// remove from grid
 									v[0].Renderable.Undraw()
 									v[1].Renderable.Undraw()
+
+									toRemove = k
+									pairHit = true
 
 									for _, saguaro := range saguaros {
 										if k != int(saguaro.Space.Label) {
@@ -549,6 +560,19 @@ func main() {
 							}
 							bulletAlive = false
 							idxMorg = idx
+
+							if pairHit {
+								tmp := SaguaroLabel + collision.Label(saguaroCounter)
+								s := entities.New(ctx,
+									entities.WithRenderable(saguaroSprite.Copy()),
+									entities.WithPosition(floatgeom.Point2{pt.X(), pt.Y()}),
+									entities.WithLabel(tmp),
+								)
+								saguaros = append(saguaros, s)
+								render.Draw(s.Renderable)
+								delete(saguaroPairs, toRemove)
+								fmt.Printf("^^^^^ length saguaroPairs %v", len(saguaroPairs))
+							}
 						}
 
 					}
