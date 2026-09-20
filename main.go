@@ -394,10 +394,9 @@ func main() {
 			var pairCounter int = 0
 			var safeCounter int = 0
 			var dayPairLimit = 2
-			var oldSchoonerPosX float64
-			var oldSchoonerPosY float64
 			var oldBulletX float64
 			var oldBulletY float64
+			var schoonerDelta floatgeom.Point2
 
 			saguaroPairs = make(map[int][]*entities.Entity)
 
@@ -613,8 +612,7 @@ func main() {
 					}
 
 					if hit != nil {
-						schooner.SetX(oldSchoonerPosX)
-						schooner.SetY(oldSchoonerPosY)
+						schooner.ShiftPos(-schoonerDelta.X(), -schoonerDelta.Y())
 					}
 
 				}
@@ -663,8 +661,10 @@ func main() {
 						if bulletHit != nil {
 							var pairHit bool
 							var toRemove int
+							var pairsToDelete []int = []int{}
 							for k, v := range saguaroPairs {
 								newSaguaros := []*entities.Entity{}
+
 								pt = floatgeom.Point2{v[0].X(), v[0].Y()}
 								if CheckAdjacentUsingSpace(v[0], morg) || CheckAdjacentUsingSpace(v[1], morg) {
 									// remove from grid
@@ -672,6 +672,7 @@ func main() {
 									v[1].Renderable.Undraw()
 
 									toRemove = k
+									pairsToDelete = append(pairsToDelete, k)
 									pairHit = true
 
 									for _, saguaro := range saguaros {
@@ -699,6 +700,7 @@ func main() {
 							population.SetString(fmt.Sprintf("Population: %v", populationCount))
 
 							if pairHit {
+								fmt.Printf("LENGTH OF PAIRSTODLETE%v\n", len(pairsToDelete))
 								enemyCounter++
 								tmp := MorgLabel + collision.Label(enemyCounter)
 								morg.Renderable.Undraw()
@@ -709,8 +711,10 @@ func main() {
 								newMorg.SetPos(floatgeom.Point2{saguaroPairs[toRemove][0].X(), saguaroPairs[toRemove][0].Y()})
 								morgs = append(morgs, newMorg)
 								event.DefaultBus.Trigger(enemyActionReady.UnsafeEventID, newMorg)
-								delete(saguaroPairs, toRemove)
-								fmt.Printf("+++++saguaroPairs length %v", len(saguaroPairs))
+								for _, pairIdx := range pairsToDelete {
+									delete(saguaroPairs, pairIdx)
+									fmt.Printf("+++++saguaroPairs length NOW %v", len(saguaroPairs))
+								}
 
 							} else {
 								saguaroCounter++
@@ -759,9 +763,11 @@ func main() {
 						heldLeft, _ := oak.IsHeld(key.A)
 						if !leftPressed || heldLeft {
 							if schooner.X()-GridSize >= 0 { // Prevent moving out of bounds
-								oldSchoonerPosX = schooner.X()
-								oldSchoonerPosY = schooner.Y()
-								schooner.ShiftX(-GridSize)
+								pt := floatgeom.Point2{schooner.X(), schooner.Y()}
+								pt2 := floatgeom.Point2{schooner.X() - GridSize, schooner.Y()}
+								delta := pt2.Sub(pt).Normalize().MulConst(128.0 * ev.SinceLastFrame.Seconds())
+								schooner.ShiftPos(delta.X(), delta.Y())
+								schoonerDelta = delta
 
 								leftPressed = true
 								if !leftRotated && currentRotation != 270.0 {
@@ -791,11 +797,11 @@ func main() {
 						heldRight, _ := oak.IsHeld(key.D)
 						if !rightPressed || heldRight {
 							if schooner.X()+GridSize <= 768 { // Prevent moving out of bounds
-								oldSchoonerPosX = schooner.X()
-								oldSchoonerPosY = schooner.Y()
-
-								schooner.ShiftX(GridSize)
-
+								pt := floatgeom.Point2{schooner.X(), schooner.Y()}
+								pt2 := floatgeom.Point2{schooner.X() + GridSize, schooner.Y()}
+								delta := pt2.Sub(pt).Normalize().MulConst(128.0 * ev.SinceLastFrame.Seconds())
+								schooner.ShiftPos(delta.X(), delta.Y())
+								schoonerDelta = delta
 								rightPressed = true
 								if !rightRotated && currentRotation != 90.0 {
 									oldRotation := currentRotation
@@ -825,10 +831,11 @@ func main() {
 						heldDown, _ := oak.IsHeld(key.S)
 						if !downPressed || heldDown {
 							if schooner.Y()+GridSize <= 568 { // Prevent moving out of bounds
-								oldSchoonerPosX = schooner.X()
-								oldSchoonerPosY = schooner.Y()
-
-								schooner.ShiftY(GridSize)
+								pt := floatgeom.Point2{schooner.X(), schooner.Y()}
+								pt2 := floatgeom.Point2{schooner.X(), schooner.Y() + GridSize}
+								delta := pt2.Sub(pt).Normalize().MulConst(128.0 * ev.SinceLastFrame.Seconds())
+								schooner.ShiftPos(delta.X(), delta.Y())
+								schoonerDelta = delta
 
 								downPressed = true
 								if !downRotated && currentRotation != 180.0 {
@@ -859,10 +866,11 @@ func main() {
 						heldUp, _ := oak.IsHeld(key.W)
 						if !upPressed || heldUp {
 							if schooner.Y()-GridSize >= 0 { // Prevent moving out of bounds
-								oldSchoonerPosX = schooner.X()
-								oldSchoonerPosY = schooner.Y()
-
-								schooner.ShiftY(-GridSize)
+								pt := floatgeom.Point2{schooner.X(), schooner.Y()}
+								pt2 := floatgeom.Point2{schooner.X(), schooner.Y() - GridSize}
+								delta := pt2.Sub(pt).Normalize().MulConst(128.0 * ev.SinceLastFrame.Seconds())
+								schooner.ShiftPos(delta.X(), delta.Y())
+								schoonerDelta = delta
 
 								upPressed = true
 								if !upRotated && currentRotation != 0.0 {
