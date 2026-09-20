@@ -29,6 +29,7 @@ const (
 	BulletLabel     collision.Label = 4
 	SaguaroLabel    collision.Label = 20 + iota
 	PairLabel       collision.Label = 80 + iota
+	SafeLabel       collision.Label = 120 + iota
 )
 
 type Direction int
@@ -383,12 +384,15 @@ func main() {
 			var bullet *entities.Entity
 			var schooner *entities.Entity
 			var bulletSprite *render.Sprite
+			var tombstoneSprite *render.Sprite
+			var transparentSprite *render.Sprite
 			var lockedBulletDirection float32
 			var saguaroSprite *render.Sprite
 			var saguaroGridXMax int
 			var saguaroGridYMax int
 			var saguaroCounter int = 0
 			var pairCounter int = 0
+			var safeCounter int = 0
 			var dayPairLimit = 2
 			var oldSchoonerPosX float64
 			var oldSchoonerPosY float64
@@ -409,9 +413,10 @@ func main() {
 				saguaroGrid[x] = make([]int, saguaroGridYMax)
 			}
 			saguaros := []*entities.Entity{}
+			safeTiles := []*entities.Entity{}
 
-			safeZoneXEnd := 12
-			safeZoneYEnd := 10
+			safeZoneXEnd := 11
+			safeZoneYEnd := 9
 
 			for safeZoneXStart := 7; safeZoneXStart <= safeZoneXEnd; safeZoneXStart++ {
 				for safeZoneYStart := 5; safeZoneYStart <= safeZoneYEnd; safeZoneYStart++ {
@@ -420,6 +425,8 @@ func main() {
 			}
 
 			saguaroSprite, err = render.LoadSprite(filepath.Join("assets/images/saguaro1.png"))
+			tombstoneSprite, err = render.LoadSprite(filepath.Join("assets/images/tombstone.png"))
+			transparentSprite, err = render.LoadSprite(filepath.Join("assets/images/transparent.png"))
 
 			var pairMade = false
 
@@ -491,6 +498,40 @@ func main() {
 
 			for saguaroX := 0; saguaroX < saguaroGridXMax; saguaroX++ {
 				for saguaroY := 0; saguaroY < saguaroGridYMax; saguaroY++ {
+					fmt.Println("CHECKING IF 77")
+					if saguaroGrid[saguaroX][saguaroY] == 77 {
+						fmt.Println("&&&&&&DRAWING safe")
+						safeCounter++
+						if saguaroY%2 == 0 {
+							tmp := entities.New(ctx,
+								entities.WithRenderable(transparentSprite.Copy()),
+								entities.WithLabel(SafeLabel+collision.Label(safeCounter)),
+								entities.WithPosition(floatgeom.Point2{float64((saguaroX + 1) * 32.0), float64((saguaroY + 1) * 32.0)}))
+							render.Draw(tmp.Renderable)
+							collision.UpdateSpace(tmp.X(), tmp.Y(), 32.0, 32.0, tmp.Space)
+							safeTiles = append(safeTiles, tmp)
+						} else {
+							if saguaroX%2 == 0 {
+								tmp := entities.New(ctx,
+									entities.WithRenderable(transparentSprite.Copy()),
+									entities.WithLabel(SafeLabel+collision.Label(safeCounter)),
+									entities.WithPosition(floatgeom.Point2{float64((saguaroX + 1) * 32.0), float64((saguaroY + 1) * 32.0)}))
+								render.Draw(tmp.Renderable)
+								collision.UpdateSpace(tmp.X(), tmp.Y(), 32.0, 32.0, tmp.Space)
+								safeTiles = append(safeTiles, tmp)
+
+							} else {
+								tmp := entities.New(ctx,
+									entities.WithRenderable(tombstoneSprite.Copy()),
+									entities.WithLabel(SafeLabel+collision.Label(safeCounter)),
+									entities.WithPosition(floatgeom.Point2{float64((saguaroX + 1) * 32.0), float64((saguaroY + 1) * 32.0)}))
+								render.Draw(tmp.Renderable)
+								collision.UpdateSpace(tmp.X(), tmp.Y(), 32.0, 32.0, tmp.Space)
+								safeTiles = append(safeTiles, tmp)
+
+							}
+						}
+					}
 					if saguaroGrid[saguaroX][saguaroY] == 1 || saguaroGrid[saguaroX][saguaroY] >= 80 {
 						saguaroCounter++
 						tmp := SaguaroLabel + collision.Label(saguaroCounter)
@@ -514,13 +555,6 @@ func main() {
 							}
 							saguaroPairs[pairID] = append(saguaroPairs[pairID], saguaro)
 						}
-					}
-					if saguaroGrid[saguaroX][saguaroY] == 77 {
-						entities.New(ctx,
-							entities.WithRenderable(render.NewColorBox(32, 32, color.RGBA{255, 255, 0, 255})),
-							entities.WithPosition(floatgeom.Point2{float64((saguaroX + 1) * 32.0), float64((saguaroY + 1) * 32.0)}),
-						)
-
 					}
 				}
 			}
@@ -586,11 +620,23 @@ func main() {
 				}
 
 				for idx, morg := range morgs {
+
 					pt := floatgeom.Point2{morg.X(), morg.Y()}
 					pt2 := floatgeom.Point2{schooner.X(), schooner.Y()}
-					delta := pt2.Sub(pt).Normalize().MulConst(80.0 * ev.SinceLastFrame.Seconds())
+					delta := pt2.Sub(pt).Normalize().MulConst(128.0 * ev.SinceLastFrame.Seconds())
 					morg.ShiftPos(delta.X(), delta.Y())
+
 					collision.UpdateSpace(morg.X(), morg.Y(), 32.0, 32.0, morg.Space)
+
+					for _, safe := range safeTiles {
+						collision.UpdateSpace(safe.X(), safe.Y(), 32.0, 32.0, safe.Space)
+						if collision.HitLabel(safe.Space, morg.Space.Label) != nil {
+							morg.ShiftPos(-delta.X(), -delta.Y())
+							collision.UpdateSpace(morg.X(), morg.Y(), 32.0, 32.0, morg.Space)
+							fmt.Println("MOrg hit safe zone!!!!!!!!!!!!!!!!!!!!")
+							break
+						}
+					}
 
 					for _, saguaro := range saguaros {
 						collision.UpdateSpace(saguaro.X(), saguaro.Y(), 32.0, 32.0, saguaro.Space)
@@ -894,6 +940,7 @@ func main() {
 				}
 
 				saguaros = saguaros[:0]
+				safeTiles = safeTiles[:0]
 				for i, row := range saguaroGrid {
 					for j, _ := range row {
 						saguaroGrid[i][j] = 0
@@ -903,6 +950,7 @@ func main() {
 				dayPairLimit++
 				pairCounter = 0
 				saguaroCounter = 0
+				safeCounter = 0
 
 				safeZoneXEnd := 12
 				safeZoneYEnd := 10
@@ -983,6 +1031,35 @@ func main() {
 
 				for saguaroX := 0; saguaroX < saguaroGridXMax; saguaroX++ {
 					for saguaroY := 0; saguaroY < saguaroGridYMax; saguaroY++ {
+						if saguaroGrid[saguaroX][saguaroY] == 77 {
+							fmt.Println("&&&&&&DRAWING safe")
+							if saguaroY%2 == 0 {
+								tmp := entities.New(ctx,
+									entities.WithRenderable(transparentSprite.Copy()),
+									entities.WithLabel(SafeLabel+collision.Label(safeCounter)),
+									entities.WithPosition(floatgeom.Point2{float64((saguaroX + 1) * 32.0), float64((saguaroY + 1) * 32.0)}))
+								render.Draw(tmp.Renderable)
+								collision.UpdateSpace(tmp.X(), tmp.Y(), 32.0, 32.0, tmp.Space)
+							} else {
+								if saguaroX%2 == 0 {
+									tmp := entities.New(ctx,
+										entities.WithRenderable(transparentSprite.Copy()),
+										entities.WithLabel(SafeLabel+collision.Label(safeCounter)),
+										entities.WithPosition(floatgeom.Point2{float64((saguaroX + 1) * 32.0), float64((saguaroY + 1) * 32.0)}))
+									render.Draw(tmp.Renderable)
+									collision.UpdateSpace(tmp.X(), tmp.Y(), 32.0, 32.0, tmp.Space)
+
+								} else {
+									tmp := entities.New(ctx,
+										entities.WithRenderable(tombstoneSprite.Copy()),
+										entities.WithLabel(SafeLabel+collision.Label(safeCounter)),
+										entities.WithPosition(floatgeom.Point2{float64((saguaroX + 1) * 32.0), float64((saguaroY + 1) * 32.0)}))
+									render.Draw(tmp.Renderable)
+									collision.UpdateSpace(tmp.X(), tmp.Y(), 32.0, 32.0, tmp.Space)
+
+								}
+							}
+						}
 						if saguaroGrid[saguaroX][saguaroY] == 1 || saguaroGrid[saguaroX][saguaroY] >= 80 {
 							saguaroCounter++
 							tmp := SaguaroLabel + collision.Label(saguaroCounter)
@@ -1007,13 +1084,7 @@ func main() {
 								saguaroPairs[pairID] = append(saguaroPairs[pairID], saguaro)
 							}
 						}
-						if saguaroGrid[saguaroX][saguaroY] == 77 {
-							entities.New(ctx,
-								entities.WithRenderable(render.NewColorBox(32, 32, color.RGBA{255, 255, 0, 255})),
-								entities.WithPosition(floatgeom.Point2{float64((saguaroX + 1) * 32.0), float64((saguaroY + 1) * 32.0)}),
-							)
 
-						}
 					}
 				}
 
