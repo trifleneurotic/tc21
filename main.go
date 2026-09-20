@@ -47,6 +47,7 @@ const (
 var (
 	enemySpawnEvent  = event.RegisterEvent[*scene.Context]()
 	enemyActionReady = event.RegisterEvent[*entities.Entity]()
+	newDayEvent      = event.RegisterEvent[*scene.Context]()
 	morgs            []*entities.Entity
 )
 
@@ -59,6 +60,15 @@ var directions = [][2]int{
 	{-1, -1}, {-1, 0}, {-1, 1}, // Top-left, Top, Top-right
 	{0, -1}, {0, 1}, // Left,      Right
 	{1, -1}, {1, 0}, {1, 1}, // Bottom-left, Bottom, Bottom-right
+}
+
+func createHorizontalLine(yCoord float64, lineColor color.Color) *render.Sprite {
+	// Get the current screen width from Oak's global configuration.
+	// In oak v4, the config is exposed via the package-level accessor
+	// Create a line stretching from X=0 to X=screenWidth at the specified Y height
+
+	line := render.NewLine(0, yCoord, 800, yCoord, lineColor)
+	return line
 }
 
 func spawnEnemyWithAdHocTimer(ctx *scene.Context) {
@@ -130,6 +140,9 @@ func spawnEnemyWithAdHocTimer(ctx *scene.Context) {
 		})
 	} else {
 		fmt.Println("No more pairs!!!!")
+		if len(morgs) == 0 {
+			event.DefaultBus.Trigger(newDayEvent.UnsafeEventID, ctx)
+		}
 	}
 }
 
@@ -259,6 +272,12 @@ func CheckAdjacentUsingSpace(a, b *entities.Entity) bool {
 	return probe.Intersects(spB.Bounds())
 }
 
+func NewDay() bool {
+	// remove all from saguaros slice
+
+	return true
+}
+
 func main() {
 	myColor := color.RGBA{R: 194, G: 178, B: 128, A: 255}
 	oak.SetColorBackground(image.NewUniform(myColor))
@@ -268,6 +287,53 @@ func main() {
 			sceneStartTime := time.Now()
 			var oldElapsedSeconds int64
 			var elapsedSeconds int64
+			var population *render.Text
+			var populationCount int
+			var lives *render.Text
+			var livesCount int
+			var day *render.Text
+			var dayCount int
+
+			textColor := color.RGBA{R: 0, G: 0, B: 0, A: 255}
+
+			fg := render.FontGenerator{
+				Size:  14,
+				Color: image.NewUniform(textColor),
+				File:  "assets/fonts/LiberationSans-Regular.ttf",
+			}
+			font, err := fg.Generate()
+			if err != nil {
+				panic(err)
+			}
+
+			fontGen := render.FontGenerator{
+				File:  "assets/fonts/Durango Western Eroded Demo.otf", // Path to your TTF file
+				Size:  24.0,
+				Color: image.NewUniform(textColor), // Wrap with image.NewUniform
+			}
+			myFont, err := fontGen.Generate()
+			if err != nil {
+				panic(err)
+			}
+
+			textRenderable := myFont.NewText(fmt.Sprintf("Tombstone City"), 400, 610)
+			render.Draw(textRenderable)
+			textRenderable = myFont.NewText(fmt.Sprintf("21st Century"), 410, 640)
+			render.Draw(textRenderable)
+
+			render.Draw(createHorizontalLine(601.0, color.RGBA{0, 0, 0, 255}))
+
+			populationCount = 0
+			population = font.NewText(fmt.Sprintf("Population: %v", populationCount), 100, 610)
+			render.Draw(population)
+
+			livesCount = 5
+			lives = font.NewText(fmt.Sprintf("Schooners: %v", livesCount), 100, 625)
+			render.Draw(lives)
+
+			dayCount = 1
+			day = font.NewText(fmt.Sprintf("Day: %v", dayCount), 100, 640)
+			render.Draw(day)
 
 			event.GlobalBind(event.DefaultBus, event.Enter, func(ev event.EnterPayload) event.Response {
 				// Calculate total duration elapsed since the scene started
@@ -323,6 +389,7 @@ func main() {
 			var saguaroGridYMax int
 			var saguaroCounter int = 0
 			var pairCounter int = 0
+			var dayPairLimit = 2
 			var oldSchoonerPosX float64
 			var oldSchoonerPosY float64
 			var oldBulletX float64
@@ -352,7 +419,7 @@ func main() {
 				}
 			}
 
-			saguaroSprite, err := render.LoadSprite(filepath.Join("assets/images/saguaro1.png"))
+			saguaroSprite, err = render.LoadSprite(filepath.Join("assets/images/saguaro1.png"))
 
 			var pairMade = false
 
@@ -412,12 +479,12 @@ func main() {
 						saguaroGrid[saguaroIndexX][saguaroIndexY] = int(PairLabel) + pairCounter
 						pairMade = true
 						fmt.Printf("pair made!!!! %v\n", saguaroGrid[saguaroIndexX][saguaroIndexY])
-						if pairCounter == 2 {
+						if pairCounter == dayPairLimit {
 							break
 						}
 					}
 				}
-				if pairMade && pairCounter == 2 {
+				if pairMade && pairCounter == dayPairLimit {
 					break
 				}
 			}
@@ -535,6 +602,14 @@ func main() {
 						}
 					}
 
+					if collision.HitLabel(schooner.Space, morg.Space.Label) != nil {
+						livesCount--
+						lives.SetString(fmt.Sprintf("Schooners: %v", livesCount))
+						schooner.SetX(400)
+						schooner.SetY(300)
+
+					}
+
 					if bulletAlive {
 						collision.UpdateSpace(bullet.X(), bullet.Y(), 8.0, 8.0, bullet.Space)
 						bulletHit = collision.HitLabel(morg.Space, bullet.Space.Label)
@@ -574,6 +649,8 @@ func main() {
 							collision.UpdateSpace(oldBulletX, oldBulletY, 8.0, 8.0, bullet.Space)
 							fmt.Println("UNDRAWING BULLET AND REPLACING MORG")
 							bulletSprite.Undraw()
+							populationCount += 150
+							population.SetString(fmt.Sprintf("Population: %v", populationCount))
 
 							if pairHit {
 								enemyCounter++
@@ -615,9 +692,9 @@ func main() {
 								render.Draw(s.Renderable)
 							}
 
-							if bullet != nil {
-								bullet = nil
-							}
+							//if bullet != nil {
+							//		bullet = nil
+							//	}
 							bulletAlive = false
 							idxMorg = idx
 
@@ -810,12 +887,160 @@ func main() {
 				}
 				return 0
 			})
+			event.GlobalBind(ctx, newDayEvent, func(c *scene.Context) event.Response {
+				fmt.Println("********it's a BRAND NEW DAY*********")
+				for _, saguaro := range saguaros {
+					saguaro.Renderable.Undraw()
+				}
+
+				saguaros = saguaros[:0]
+				for i, row := range saguaroGrid {
+					for j, _ := range row {
+						saguaroGrid[i][j] = 0
+					}
+				}
+
+				dayPairLimit++
+				pairCounter = 0
+				saguaroCounter = 0
+
+				safeZoneXEnd := 12
+				safeZoneYEnd := 10
+
+				for safeZoneXStart := 7; safeZoneXStart <= safeZoneXEnd; safeZoneXStart++ {
+					for safeZoneYStart := 5; safeZoneYStart <= safeZoneYEnd; safeZoneYStart++ {
+						saguaroGrid[safeZoneXStart][safeZoneYStart] = 77
+					}
+				}
+
+				var pairMade = false
+
+				// make 10 saguaros, making sure that a saguaro isn't already there
+				for i := 0; i < 10; i++ {
+					saguaroX := rand.IntN(saguaroGridXMax)
+					saguaroY := rand.IntN(saguaroGridYMax)
+
+					saguaroFound := false
+					for !saguaroFound {
+						if saguaroGrid[saguaroX][saguaroY] == 0 && !hasNeighbors(saguaroGrid, saguaroX, saguaroY) {
+							saguaroGrid[saguaroX][saguaroY] = 1
+							saguaroFound = true
+						} else {
+							saguaroX = rand.IntN(saguaroGridXMax)
+							saguaroY = rand.IntN(saguaroGridYMax)
+
+						}
+					}
+				}
+
+				for i, row := range saguaroGrid {
+					pairMade = false
+					for j, val := range row {
+						// if a saguaro is there and it doesn't have neighbors....
+						if val == 1 && !hasNeighbors(saguaroGrid, i, j) {
+							// ....pick a direction at random....
+							dirIndex := rand.IntN(8)
+
+							pairCounter++
+
+							saguaroGrid[i][j] = int(PairLabel) + pairCounter
+
+							saguaroIndexX := i + (directions[dirIndex][0])
+							saguaroIndexY := j + (directions[dirIndex][1])
+
+							fmt.Printf("ij -> %v %v\n", saguaroIndexX, saguaroIndexY)
+
+							if saguaroIndexX == -1 {
+								saguaroIndexX = 1
+							}
+
+							if saguaroIndexY == -1 {
+								saguaroIndexY = 1
+							}
+
+							if saguaroIndexY == 14 {
+								saguaroIndexY--
+							}
+
+							if saguaroIndexX == 14 {
+								saguaroIndexX--
+							}
+
+							fmt.Printf("saguaro index -> %v %v\n", saguaroIndexX, saguaroIndexY)
+							// ...and put a saguaro there to make a single pair only
+							saguaroGrid[saguaroIndexX][saguaroIndexY] = int(PairLabel) + pairCounter
+							pairMade = true
+							fmt.Printf("pair made!!!! %v\n", saguaroGrid[saguaroIndexX][saguaroIndexY])
+							if pairCounter == dayPairLimit {
+								break
+							}
+						}
+					}
+					if pairMade && pairCounter == dayPairLimit {
+						break
+					}
+				}
+
+				for saguaroX := 0; saguaroX < saguaroGridXMax; saguaroX++ {
+					for saguaroY := 0; saguaroY < saguaroGridYMax; saguaroY++ {
+						if saguaroGrid[saguaroX][saguaroY] == 1 || saguaroGrid[saguaroX][saguaroY] >= 80 {
+							saguaroCounter++
+							tmp := SaguaroLabel + collision.Label(saguaroCounter)
+							saguaro := entities.New(ctx,
+								entities.WithRenderable(saguaroSprite.Copy()),
+								entities.WithPosition(floatgeom.Point2{float64((saguaroX + 1) * 32.0), float64((saguaroY + 1) * 32.0)}),
+								entities.WithLabel(tmp),
+							)
+
+							saguaros = append(saguaros, saguaro)
+							// collision.NewLabeledSpace(float64((saguaroX+1)*32.0), float64((saguaroY+1)*32.0), 32, 32, tmp)
+
+							if saguaroGrid[saguaroX][saguaroY] >= 80 {
+								fmt.Println("adding pair..........")
+
+								saguaro.Space.Label = collision.Label(saguaroGrid[saguaroX][saguaroY])
+
+								pairID := saguaroGrid[saguaroX][saguaroY]
+								if _, ok := saguaroPairs[pairID]; !ok {
+									saguaroPairs[pairID] = []*entities.Entity{}
+								}
+								saguaroPairs[pairID] = append(saguaroPairs[pairID], saguaro)
+							}
+						}
+						if saguaroGrid[saguaroX][saguaroY] == 77 {
+							entities.New(ctx,
+								entities.WithRenderable(render.NewColorBox(32, 32, color.RGBA{255, 255, 0, 255})),
+								entities.WithPosition(floatgeom.Point2{float64((saguaroX + 1) * 32.0), float64((saguaroY + 1) * 32.0)}),
+							)
+
+						}
+					}
+				}
+
+				for _, saguaro := range saguaros {
+					render.Draw(saguaro.Renderable)
+				}
+
+				schooner.SetX(400)
+				schooner.SetY(300)
+
+				dayCount++
+				day.SetString(fmt.Sprintf("Day: %v", dayCount))
+
+				for _, saguaro := range saguaros {
+					collision.UpdateSpace(saguaro.X(), saguaro.Y(), 32.0, 32.0, saguaro.Space)
+					if CheckAdjacent(saguaro.Space, ctx.CollisionTree, Up) != nil || CheckAdjacent(saguaro.Space, ctx.CollisionTree, Down) != nil || CheckAdjacent(saguaro.Space, ctx.CollisionTree, Left) != nil || CheckAdjacent(saguaro.Space, ctx.CollisionTree, Right) != nil || CheckAdjacent(saguaro.Space, ctx.CollisionTree, UpLeft) != nil || CheckAdjacent(saguaro.Space, ctx.CollisionTree, UpRight) != nil || CheckAdjacent(saguaro.Space, ctx.CollisionTree, DownLeft) != nil || CheckAdjacent(saguaro.Space, ctx.CollisionTree, DownRight) != nil {
+						fmt.Println("I have a neighbor!!!!!!")
+					}
+				}
+				return 0
+			})
 		},
 	})
 
 	oak.Init("firstScene", func(c oak.Config) (oak.Config, error) {
 		c.Screen.Width = 800
-		c.Screen.Height = 600
+		c.Screen.Height = 700
 		c.Screen.Scale = 1
 		c.Title = "Tombstone City: 21st Century"
 		return c, nil
