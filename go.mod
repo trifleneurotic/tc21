@@ -7,9 +7,12 @@ require (
 	github.com/BurntSushi/xgb v0.0.0-20210121224620-deaf085860bc // indirect
 	github.com/BurntSushi/xgbutil v0.0.0-20190907113008-ad855c713046 // indirect
 	github.com/disintegration/gift v1.2.1 // indirect
+	github.com/ebitengine/oto/v3 v3.5.1 // indirect
+	github.com/ebitengine/purego v0.11.0 // indirect
 	github.com/go-gl/glfw/v3.3/glfw v0.0.0-20220320163800-277f93cfa958 // indirect
 	github.com/golang/freetype v0.0.0-20170609003504-e2365dfdc4a0 // indirect
-	github.com/jfreymuth/pulse v0.1.0 // indirect
+	github.com/hajimehoshi/go-mp3 v0.3.2 // indirect
+	github.com/jfreymuth/pulse v0.1.3 // indirect
 	github.com/oakmound/alsa v0.0.2 // indirect
 	github.com/oakmound/libudev v0.2.1 // indirect
 	github.com/oakmound/oak/v4 v4.1.1 // indirect
@@ -20,5 +23,5 @@ require (
 	golang.org/x/image v0.21.0 // indirect
 	golang.org/x/mobile v0.0.0-20220325161704-447654d348e3 // indirect
 	golang.org/x/sync v0.1.0 // indirect
-	golang.org/x/sys v0.5.0 // indirect
+	golang.org/x/sys v0.47.0 // indirect
 )

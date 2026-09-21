@@ -1,14 +1,19 @@
 package main
 
 import (
+	"bytes"
+	"encoding/binary"
 	"fmt"
 	"image"
 	"image/color"
+	"io"
 	"math/rand/v2"
+	"os"
 	"path/filepath"
 	"slices"
 	"time"
 
+	"github.com/ebitengine/oto/v3"
 	"github.com/oakmound/oak/v4"
 	"github.com/oakmound/oak/v4/alg/floatgeom"
 	"github.com/oakmound/oak/v4/collision"
@@ -70,6 +75,34 @@ func createHorizontalLine(yCoord float64, lineColor color.Color) *render.Sprite 
 
 	line := render.NewLine(0, yCoord, 800, yCoord, lineColor)
 	return line
+}
+
+// Simple minimal WAV header parser to get format data and skip to PCM data
+func parseWav(wavBytes []byte) (sampleRate int, channels int, format oto.Format, audioData io.Reader, err error) {
+	if len(wavBytes) < 44 {
+		return 0, 0, 0, nil, fmt.Errorf("invalid wav file header")
+	}
+
+	// Read format specifications from the header
+	numChannels := int(binary.LittleEndian.Uint16(wavBytes[22:24]))
+	sampleRate = int(binary.LittleEndian.Uint32(wavBytes[24:28]))
+	bitsPerSample := int(binary.LittleEndian.Uint16(wavBytes[34:36]))
+
+	// Determine Oto format based on bit depth
+	switch bitsPerSample {
+	case 8:
+		format = oto.FormatUnsignedInt8
+	case 16:
+		format = oto.FormatSignedInt16LE
+	case 32:
+		format = oto.FormatFloat32LE
+	default:
+		return 0, 0, 0, nil, fmt.Errorf("unsupported bit depth: %d", bitsPerSample)
+	}
+
+	// Standard WAV files have data starting at byte 44
+	// For production, use a formal WAV decoder to safely handle custom metadata chunks
+	return sampleRate, numChannels, format, bytes.NewReader(wavBytes[44:]), nil
 }
 
 func spawnEnemyWithAdHocTimer(ctx *scene.Context) {
@@ -1145,7 +1178,80 @@ func main() {
 		},
 	})
 
-	oak.Init("firstScene", func(c oak.Config) (oak.Config, error) {
+	oak.AddScene("titleScene", scene.Scene{
+		Start: func(ctx *scene.Context) {
+			textColor := color.RGBA{R: 0, G: 0, B: 0, A: 255}
+
+			fg := render.FontGenerator{
+				Size:  24,
+				Color: image.NewUniform(textColor),
+				File:  "assets/fonts/LiberationSans-Regular.ttf",
+			}
+			font, err := fg.Generate()
+			if err != nil {
+				panic(err)
+			}
+
+			fontGen := render.FontGenerator{
+				File:  "assets/fonts/Durango Western Eroded Demo.otf", // Path to your TTF file
+				Size:  32.0,
+				Color: image.NewUniform(textColor), // Wrap with image.NewUniform
+			}
+			myFont, err := fontGen.Generate()
+			if err != nil {
+				panic(err)
+			}
+
+			textRenderable := myFont.NewText(fmt.Sprintf("Tombstone City: 21st Century"), 220, 100)
+			render.Draw(textRenderable)
+			textRenderable = font.NewText(fmt.Sprintf("press S to begin"), 320, 150)
+			render.Draw(textRenderable)
+
+			// 1. Read the WAV file into memory
+			fileBytes, err := os.ReadFile("assets/audio/tombstonetheme.wav")
+			if err != nil {
+				panic("Failed to read WAV file: " + err.Error())
+			}
+
+			// 2. Parse basic WAV information
+			sampleRate, channelCount, format, pcmReader, err := parseWav(fileBytes)
+			if err != nil {
+				panic("Failed to parse WAV: " + err.Error())
+			}
+
+			// 3. Configure and initialize the Oto context
+			op := &oto.NewContextOptions{
+				SampleRate:   sampleRate,   // Automatically matches the WAV file (e.g., 44100)
+				ChannelCount: channelCount, // Automatically matches the WAV file (e.g., 2)
+				Format:       format,       // Matches bit depth (e.g., FormatSignedInt16LE)
+			}
+
+			// Initialize context. Note: You should only create ONE context per application lifecycle.
+			otoCtx, readyChan, err := oto.NewContext(op)
+			if err != nil {
+				panic("oto.NewContext failed: " + err.Error())
+			}
+
+			// Wait for hardware audio devices to initialize
+			<-readyChan
+
+			// 4. Create the player and execute asynchronous playback
+			player := otoCtx.NewPlayer(pcmReader)
+			player.Play()
+
+			event.GlobalBind(event.DefaultBus, event.Enter, func(ev event.EnterPayload) event.Response {
+
+				if oak.IsDown(key.S) {
+					fmt.Println("starting.....")
+					ctx.Window.GoToScene("firstScene")
+				}
+
+				return 0
+			})
+		},
+	})
+
+	oak.Init("titleScene", func(c oak.Config) (oak.Config, error) {
 		c.Screen.Width = 800
 		c.Screen.Height = 700
 		c.Screen.Scale = 1
