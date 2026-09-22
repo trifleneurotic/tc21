@@ -745,6 +745,12 @@ func main() {
 						lives.SetString(fmt.Sprintf("Schooners: %v", livesCount))
 						schooner.SetX(400)
 						schooner.SetY(300)
+						_, err := eatenPlayer.Seek(0, io.SeekStart)
+						if err != nil {
+							panic("player.Seek failed: " + err.Error())
+						}
+
+						eatenPlayer.Play()
 
 					}
 
