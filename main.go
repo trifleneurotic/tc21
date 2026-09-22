@@ -60,6 +60,10 @@ var (
 var enemyIDCounter = 30
 var enemyCounter = 0
 var saguaroPairs = map[int][]*entities.Entity{}
+var shootPlayer *oto.Player
+var explosionPlayer *oto.Player
+var eatenPlayer *oto.Player
+var otoContext *oto.Context
 
 // Direction offset pairs for all 8 neighbors (Row, Column)
 var directions = [][2]int{
@@ -75,6 +79,41 @@ func createHorizontalLine(yCoord float64, lineColor color.Color) *render.Sprite 
 
 	line := render.NewLine(0, yCoord, 800, yCoord, lineColor)
 	return line
+}
+
+func initSound() {
+	shootBytes, err := os.ReadFile("assets/audio/shoot.wav")
+	if err != nil {
+		panic("Failed to read WAV file: " + err.Error())
+	}
+
+	eatenBytes, err := os.ReadFile("assets/audio/eaten.wav")
+	if err != nil {
+		panic("Failed to read WAV file: " + err.Error())
+	}
+	explosionBytes, err := os.ReadFile("assets/audio/explosion.wav")
+	if err != nil {
+		panic("Failed to read WAV file: " + err.Error())
+	}
+
+	_, _, _, shootReader, err := parseWav(shootBytes)
+	if err != nil {
+		panic("Failed to parse WAV: " + err.Error())
+	}
+
+	_, _, _, eatenReader, err := parseWav(eatenBytes)
+	if err != nil {
+		panic("Failed to parse WAV: " + err.Error())
+	}
+
+	_, _, _, explosionReader, err := parseWav(explosionBytes)
+	if err != nil {
+		panic("Failed to parse WAV: " + err.Error())
+	}
+
+	shootPlayer = otoContext.NewPlayer(shootReader)
+	eatenPlayer = otoContext.NewPlayer(eatenReader)
+	explosionPlayer = otoContext.NewPlayer(explosionReader)
 }
 
 // Simple minimal WAV header parser to get format data and skip to PCM data
@@ -459,6 +498,8 @@ func main() {
 				}
 			}
 
+			initSound()
+
 			saguaroSprite, err = render.LoadSprite(filepath.Join("assets/images/saguaro1.png"))
 			tombstoneSprite, err = render.LoadSprite(filepath.Join("assets/images/tombstone.png"))
 			transparentSprite, err = render.LoadSprite(filepath.Join("assets/images/transparent.png"))
@@ -714,6 +755,13 @@ func main() {
 						if bulletHit != nil {
 							var pairHit bool
 							var toRemove int
+							_, err := explosionPlayer.Seek(0, io.SeekStart)
+							if err != nil {
+								panic("player.Seek failed: " + err.Error())
+							}
+
+							explosionPlayer.Play()
+
 							var pairsToDelete []int = []int{}
 							for k, v := range saguaroPairs {
 								newSaguaros := []*entities.Entity{}
@@ -790,6 +838,7 @@ func main() {
 										saguaroPairs[int(PairLabel)+pairCounter] = append(saguaroPairs[int(PairLabel)+pairCounter], s, saguaro)
 									}
 								}
+
 								saguaros = append(saguaros, s)
 								morg.Renderable.Undraw()
 								render.Draw(s.Renderable)
@@ -952,6 +1001,10 @@ func main() {
 				collision.UpdateSpace(schooner.X(), schooner.Y(), 32.0, 32.0, schooner.Space)
 
 				if oak.IsDown(key.Spacebar) {
+					_, err := shootPlayer.Seek(0, io.SeekStart)
+					if err != nil {
+						panic("player.Seek failed: " + err.Error())
+					}
 					if !bulletAlive {
 						bullet = entities.New(ctx,
 							entities.WithRenderable(bulletSprite),
@@ -961,6 +1014,8 @@ func main() {
 						lockedBulletDirection = currentRotation
 						render.Draw(bulletSprite)
 						bulletAlive = true
+						shootPlayer.Play()
+
 					}
 
 				}
@@ -1234,6 +1289,8 @@ func main() {
 
 			// Wait for hardware audio devices to initialize
 			<-readyChan
+
+			otoContext = otoCtx
 
 			// 4. Create the player and execute asynchronous playback
 			player := otoCtx.NewPlayer(pcmReader)
