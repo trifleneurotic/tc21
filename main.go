@@ -64,6 +64,7 @@ var shootPlayer *oto.Player
 var explosionPlayer *oto.Player
 var eatenPlayer *oto.Player
 var otoContext *oto.Context
+var alienSprite *render.Sprite
 
 // Direction offset pairs for all 8 neighbors (Row, Column)
 var directions = [][2]int{
@@ -179,7 +180,7 @@ func spawnEnemyWithAdHocTimer(ctx *scene.Context) {
 			tmp := MorgLabel + collision.Label(enemyCounter)
 			morg := entities.New(ctx,
 				entities.WithLabel(tmp),
-				entities.WithRenderable(render.NewColorBox(32, 32, color.RGBA{0, 255, 255, 255})),
+				entities.WithRenderable(alienSprite.Copy()),
 			)
 			event.DefaultBus.Trigger(enemyActionReady.UnsafeEventID, morg)
 
@@ -503,6 +504,7 @@ func main() {
 			saguaroSprite, err = render.LoadSprite(filepath.Join("assets/images/saguaro1.png"))
 			tombstoneSprite, err = render.LoadSprite(filepath.Join("assets/images/tombstone.png"))
 			transparentSprite, err = render.LoadSprite(filepath.Join("assets/images/transparent.png"))
+			alienSprite, err = render.LoadSprite(filepath.Join("assets/images/alien.png"))
 
 			var pairMade = false
 
