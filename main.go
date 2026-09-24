@@ -30,11 +30,11 @@ const GridSize = 4.0
 const (
 	SchoonerLabel   collision.Label = 1
 	MorgLabel       collision.Label = 50 + iota
-	TumbleweedLabel collision.Label = 3
 	BulletLabel     collision.Label = 4
 	SaguaroLabel    collision.Label = 20 + iota
 	PairLabel       collision.Label = 80 + iota
 	SafeLabel       collision.Label = 120 + iota
+	TumbleweedLabel collision.Label = 140 + iota
 )
 
 type Direction int
@@ -461,16 +461,20 @@ func main() {
 			var transparentSprite *render.Sprite
 			var lockedBulletDirection float32
 			var saguaroSprite *render.Sprite
+			var tumbleweedSprite *render.Sprite
 			var saguaroGridXMax int
 			var saguaroGridYMax int
 			var saguaroCounter int = 0
 			var pairCounter int = 0
 			var safeCounter int = 0
+			var tumbleweedCounter int = 0
 			var dayPairLimit = 2
+			var dayTumbleweedLimit = 5
 			var oldBulletX float64
 			var oldBulletY float64
 			var schoonerDelta floatgeom.Point2
 			var tombstones []*entities.Entity
+			var tumbleweeds []*entities.Entity
 
 			saguaroPairs = make(map[int][]*entities.Entity)
 
@@ -488,6 +492,7 @@ func main() {
 			saguaros := []*entities.Entity{}
 			safeTiles := []*entities.Entity{}
 			tombstones = []*entities.Entity{}
+			tumbleweeds = []*entities.Entity{}
 
 			safeZoneXEnd := 13
 			safeZoneYEnd := 13
@@ -505,6 +510,7 @@ func main() {
 			tombstoneSprite, err = render.LoadSprite(filepath.Join("assets/images/tombstone.png"))
 			transparentSprite, err = render.LoadSprite(filepath.Join("assets/images/transparent.png"))
 			alienSprite, err = render.LoadSprite(filepath.Join("assets/images/alien.png"))
+			tumbleweedSprite, err = render.LoadSprite(filepath.Join("assets/images/tweed.png"))
 
 			var pairMade = false
 
@@ -574,6 +580,41 @@ func main() {
 				}
 			}
 
+			fmt.Println("++++++++++STARTING TUMBLEWEED LOOP")
+			/*for i, row := range saguaroGrid {
+				for j, val := range row {
+					// if nothing is there and it doesn't have neighbors....
+					if val == 0 && !hasNeighbors(saguaroGrid, i, j) {
+						fmt.Println("SETTING TUMBLEWEED")
+						tumbleweedCounter++
+
+						saguaroGrid[i][j] = int(TumbleweedLabel) + tumbleweedCounter
+						break
+					}
+				}
+				if tumbleweedCounter == dayTumbleweedLimit {
+					fmt.Printf("%v TUMBLEWEED LIMIT REACHED", tumbleweedCounter)
+					break
+				}
+			}*/
+
+			for i := 0; i < dayTumbleweedLimit; i++ {
+				saguaroX := rand.IntN(saguaroGridXMax)
+				saguaroY := rand.IntN(saguaroGridYMax)
+
+				saguaroFound := false
+				for !saguaroFound {
+					if saguaroGrid[saguaroX][saguaroY] == 0 && !hasNeighbors(saguaroGrid, saguaroX, saguaroY) {
+						saguaroGrid[saguaroX][saguaroY] = int(TumbleweedLabel) + tumbleweedCounter
+						saguaroFound = true
+						tumbleweedCounter++
+					} else {
+						saguaroX = rand.IntN(saguaroGridXMax)
+						saguaroY = rand.IntN(saguaroGridYMax)
+					}
+				}
+			}
+
 			for saguaroX := 0; saguaroX < saguaroGridXMax; saguaroX++ {
 				fmt.Println("Next ROWWWWWWWWWWWW")
 				for saguaroY := 0; saguaroY < saguaroGridYMax; saguaroY++ {
@@ -601,7 +642,7 @@ func main() {
 						}
 
 					}
-					if saguaroGrid[saguaroX][saguaroY] == 1 || saguaroGrid[saguaroX][saguaroY] >= 80 {
+					if saguaroGrid[saguaroX][saguaroY] == 1 || (saguaroGrid[saguaroX][saguaroY] >= 80 && saguaroGrid[saguaroX][saguaroY] < 140) {
 						saguaroCounter++
 						tmp := SaguaroLabel + collision.Label(saguaroCounter)
 						saguaro := entities.New(ctx,
@@ -625,11 +666,27 @@ func main() {
 							saguaroPairs[pairID] = append(saguaroPairs[pairID], saguaro)
 						}
 					}
+					if saguaroGrid[saguaroX][saguaroY] >= 140 {
+						fmt.Printf("TUMBLEWEED AT %v %v %v\n", saguaroX, saguaroY, saguaroGrid[saguaroX][saguaroY])
+						tmp := TumbleweedLabel + collision.Label(saguaroGrid[saguaroX][saguaroY])
+						tumbleweed := entities.New(ctx,
+							entities.WithRenderable(tumbleweedSprite.Copy()),
+							entities.WithPosition(floatgeom.Point2{float64((saguaroX + 1) * 32.0), float64((saguaroY + 1) * 32.0)}),
+							entities.WithLabel(tmp),
+						)
+
+						tumbleweeds = append(tumbleweeds, tumbleweed)
+						// collision.NewLabeledSpace(float64((saguaroX+1)*32.0), float64((saguaroY+1)*32.0), 32, 32, tmp)
+					}
 				}
 			}
 
 			for _, saguaro := range saguaros {
 				render.Draw(saguaro.Renderable)
+			}
+
+			for _, tumbleweed := range tumbleweeds {
+				render.Draw(tumbleweed.Renderable)
 			}
 
 			schoonerSprite, err := render.LoadSprite(filepath.Join("assets/images/schooner1.png"))
