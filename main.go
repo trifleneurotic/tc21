@@ -434,34 +434,36 @@ func main() {
 			})
 
 			event.GlobalBind(ctx, tumbleweedEvent, func(c *scene.Context) event.Response {
-				fmt.Println("%%%%%%% TUMBLEWEED MOVING")
-				idx := rand.IntN(len(tumbleweeds))
-				tumbleweedToMove := tumbleweeds[idx]
+				if len(tumbleweeds) > 0 {
+					fmt.Println("%%%%%%% TUMBLEWEED MOVING")
+					idx := rand.IntN(len(tumbleweeds))
+					tumbleweedToMove := tumbleweeds[idx]
 
-				if CheckAdjacent(tumbleweedToMove.Space, ctx.CollisionTree, Up) == nil {
-					tumbleweedToMove.SetPos(floatgeom.Point2{tumbleweedToMove.X(), tumbleweedToMove.Y() - 16.0})
-					collision.UpdateSpace(tumbleweedToMove.X(), tumbleweedToMove.Y()-16.0, 16, 16, tumbleweedToMove.Space)
-				} else if CheckAdjacent(tumbleweedToMove.Space, ctx.CollisionTree, Down) == nil {
-					tumbleweedToMove.SetPos(floatgeom.Point2{tumbleweedToMove.X(), tumbleweedToMove.Y() + 16.0})
-					collision.UpdateSpace(tumbleweedToMove.X(), tumbleweedToMove.Y()+16.0, 16, 16, tumbleweedToMove.Space)
-				} else if CheckAdjacent(tumbleweedToMove.Space, ctx.CollisionTree, Left) == nil {
-					tumbleweedToMove.SetPos(floatgeom.Point2{tumbleweedToMove.X() - 16.0, tumbleweedToMove.Y()})
-					collision.UpdateSpace(tumbleweedToMove.X()-16.0, tumbleweedToMove.Y(), 16, 16, tumbleweedToMove.Space)
-				} else if CheckAdjacent(tumbleweedToMove.Space, ctx.CollisionTree, Right) == nil {
-					tumbleweedToMove.SetPos(floatgeom.Point2{tumbleweedToMove.X() + 16.0, tumbleweedToMove.Y()})
-					collision.UpdateSpace(tumbleweedToMove.X()+16.0, tumbleweedToMove.Y(), 16, 16, tumbleweedToMove.Space)
-				} else if CheckAdjacent(tumbleweedToMove.Space, ctx.CollisionTree, DownLeft) == nil {
-					tumbleweedToMove.SetPos(floatgeom.Point2{tumbleweedToMove.X() - 16.0, tumbleweedToMove.Y() + 16.0})
-					collision.UpdateSpace(tumbleweedToMove.X()-16.0, tumbleweedToMove.Y()+16.0, 16, 16, tumbleweedToMove.Space)
-				} else if CheckAdjacent(tumbleweedToMove.Space, ctx.CollisionTree, DownRight) == nil {
-					tumbleweedToMove.SetPos(floatgeom.Point2{tumbleweedToMove.X() + 16.0, tumbleweedToMove.Y() + 16.0})
-					collision.UpdateSpace(tumbleweedToMove.X()+16.0, tumbleweedToMove.Y()+16.0, 16, 16, tumbleweedToMove.Space)
-				} else if CheckAdjacent(tumbleweedToMove.Space, ctx.CollisionTree, UpRight) == nil {
-					tumbleweedToMove.SetPos(floatgeom.Point2{tumbleweedToMove.X() + 16.0, tumbleweedToMove.Y() - 16.0})
-					collision.UpdateSpace(tumbleweedToMove.X()+16.0, tumbleweedToMove.Y()-16.0, 16, 16, tumbleweedToMove.Space)
-				} else if CheckAdjacent(tumbleweedToMove.Space, ctx.CollisionTree, UpLeft) == nil {
-					tumbleweedToMove.SetPos(floatgeom.Point2{tumbleweedToMove.X() - 16.0, tumbleweedToMove.Y() - 16.0})
-					collision.UpdateSpace(tumbleweedToMove.X()-16.0, tumbleweedToMove.Y()-16.0, 16, 16, tumbleweedToMove.Space)
+					if CheckAdjacent(tumbleweedToMove.Space, ctx.CollisionTree, Up) == nil {
+						tumbleweedToMove.SetPos(floatgeom.Point2{tumbleweedToMove.X(), tumbleweedToMove.Y() - 16.0})
+						collision.UpdateSpace(tumbleweedToMove.X(), tumbleweedToMove.Y()-16.0, 16, 16, tumbleweedToMove.Space)
+					} else if CheckAdjacent(tumbleweedToMove.Space, ctx.CollisionTree, Down) == nil {
+						tumbleweedToMove.SetPos(floatgeom.Point2{tumbleweedToMove.X(), tumbleweedToMove.Y() + 16.0})
+						collision.UpdateSpace(tumbleweedToMove.X(), tumbleweedToMove.Y()+16.0, 16, 16, tumbleweedToMove.Space)
+					} else if CheckAdjacent(tumbleweedToMove.Space, ctx.CollisionTree, Left) == nil {
+						tumbleweedToMove.SetPos(floatgeom.Point2{tumbleweedToMove.X() - 16.0, tumbleweedToMove.Y()})
+						collision.UpdateSpace(tumbleweedToMove.X()-16.0, tumbleweedToMove.Y(), 16, 16, tumbleweedToMove.Space)
+					} else if CheckAdjacent(tumbleweedToMove.Space, ctx.CollisionTree, Right) == nil {
+						tumbleweedToMove.SetPos(floatgeom.Point2{tumbleweedToMove.X() + 16.0, tumbleweedToMove.Y()})
+						collision.UpdateSpace(tumbleweedToMove.X()+16.0, tumbleweedToMove.Y(), 16, 16, tumbleweedToMove.Space)
+					} else if CheckAdjacent(tumbleweedToMove.Space, ctx.CollisionTree, DownLeft) == nil {
+						tumbleweedToMove.SetPos(floatgeom.Point2{tumbleweedToMove.X() - 16.0, tumbleweedToMove.Y() + 16.0})
+						collision.UpdateSpace(tumbleweedToMove.X()-16.0, tumbleweedToMove.Y()+16.0, 16, 16, tumbleweedToMove.Space)
+					} else if CheckAdjacent(tumbleweedToMove.Space, ctx.CollisionTree, DownRight) == nil {
+						tumbleweedToMove.SetPos(floatgeom.Point2{tumbleweedToMove.X() + 16.0, tumbleweedToMove.Y() + 16.0})
+						collision.UpdateSpace(tumbleweedToMove.X()+16.0, tumbleweedToMove.Y()+16.0, 16, 16, tumbleweedToMove.Space)
+					} else if CheckAdjacent(tumbleweedToMove.Space, ctx.CollisionTree, UpRight) == nil {
+						tumbleweedToMove.SetPos(floatgeom.Point2{tumbleweedToMove.X() + 16.0, tumbleweedToMove.Y() - 16.0})
+						collision.UpdateSpace(tumbleweedToMove.X()+16.0, tumbleweedToMove.Y()-16.0, 16, 16, tumbleweedToMove.Space)
+					} else if CheckAdjacent(tumbleweedToMove.Space, ctx.CollisionTree, UpLeft) == nil {
+						tumbleweedToMove.SetPos(floatgeom.Point2{tumbleweedToMove.X() - 16.0, tumbleweedToMove.Y() - 16.0})
+						collision.UpdateSpace(tumbleweedToMove.X()-16.0, tumbleweedToMove.Y()-16.0, 16, 16, tumbleweedToMove.Space)
+					}
 				}
 
 				return 0
@@ -702,7 +704,7 @@ func main() {
 						saguaros = append(saguaros, saguaro)
 						// collision.NewLabeledSpace(float64((saguaroX+1)*32.0), float64((saguaroY+1)*32.0), 32, 32, tmp)
 
-						if saguaroGrid[saguaroX][saguaroY] >= 80 {
+						if saguaroGrid[saguaroX][saguaroY] >= 80 && saguaroGrid[saguaroX][saguaroY] < 140 {
 							fmt.Println("adding pair..........")
 
 							saguaro.Space.Label = collision.Label(saguaroGrid[saguaroX][saguaroY])
@@ -948,7 +950,7 @@ func main() {
 
 									for saguaroX := 0; saguaroX < saguaroGridXMax; saguaroX++ {
 										for saguaroY := 0; saguaroY < saguaroGridYMax; saguaroY++ {
-											if saguaroGrid[saguaroX][saguaroY] >= 80 {
+											if saguaroGrid[saguaroX][saguaroY] >= 80 && saguaroGrid[saguaroX][saguaroY] < 140 {
 												saguaroGrid[saguaroX][saguaroY] = 0
 											}
 										}
@@ -1250,10 +1252,10 @@ func main() {
 				safeCounter = 0
 
 				safeZoneXEnd := 13
-				safeZoneYEnd := 11
+				safeZoneYEnd := 13
 
 				for safeZoneXStart := 7; safeZoneXStart <= safeZoneXEnd; safeZoneXStart++ {
-					for safeZoneYStart := 5; safeZoneYStart <= safeZoneYEnd; safeZoneYStart++ {
+					for safeZoneYStart := 7; safeZoneYStart <= safeZoneYEnd; safeZoneYStart++ {
 						saguaroGrid[safeZoneXStart][safeZoneYStart] = 77
 					}
 				}
@@ -1368,7 +1370,7 @@ func main() {
 
 							}
 						}
-						if saguaroGrid[saguaroX][saguaroY] == 1 || saguaroGrid[saguaroX][saguaroY] >= 80 {
+						if saguaroGrid[saguaroX][saguaroY] == 1 || (saguaroGrid[saguaroX][saguaroY] >= 80 && saguaroGrid[saguaroX][saguaroY] < 140) {
 							saguaroCounter++
 							tmp := SaguaroLabel + collision.Label(saguaroCounter)
 							saguaro := entities.New(ctx,
@@ -1380,7 +1382,7 @@ func main() {
 							newSaguaros = append(newSaguaros, saguaro)
 							// collision.NewLabeledSpace(float64((saguaroX+1)*32.0), float64((saguaroY+1)*32.0), 32, 32, tmp)
 
-							if saguaroGrid[saguaroX][saguaroY] >= 80 {
+							if saguaroGrid[saguaroX][saguaroY] >= 80 && saguaroGrid[saguaroX][saguaroY] < 140 {
 								fmt.Println("adding pair..........")
 
 								saguaro.Space.Label = collision.Label(saguaroGrid[saguaroX][saguaroY])
@@ -1391,18 +1393,19 @@ func main() {
 								}
 								saguaroPairs[pairID] = append(saguaroPairs[pairID], saguaro)
 							}
-							if saguaroGrid[saguaroX][saguaroY] >= 140 {
-								fmt.Printf("TUMBLEWEED AT %v %v %v\n", saguaroX, saguaroY, saguaroGrid[saguaroX][saguaroY])
-								tmp := TumbleweedLabel + collision.Label(saguaroGrid[saguaroX][saguaroY])
-								tumbleweed := entities.New(ctx,
-									entities.WithRenderable(tumbleweedSprite.Copy()),
-									entities.WithPosition(floatgeom.Point2{float64((saguaroX + 1) * 32.0), float64((saguaroY + 1) * 32.0)}),
-									entities.WithLabel(tmp),
-								)
 
-								newTumbleweeds = append(tumbleweeds, tumbleweed)
-								// collision.NewLabeledSpace(float64((saguaroX+1)*32.0), float64((saguaroY+1)*32.0), 32, 32, tmp)
-							}
+						}
+						if saguaroGrid[saguaroX][saguaroY] >= 140 {
+							fmt.Printf("TUMBLEWEED AT %v %v %v\n", saguaroX, saguaroY, saguaroGrid[saguaroX][saguaroY])
+							tmp := TumbleweedLabel + collision.Label(saguaroGrid[saguaroX][saguaroY])
+							tumbleweed := entities.New(ctx,
+								entities.WithRenderable(tumbleweedSprite.Copy()),
+								entities.WithPosition(floatgeom.Point2{float64((saguaroX + 1) * 32.0), float64((saguaroY + 1) * 32.0)}),
+								entities.WithLabel(tmp),
+							)
+
+							newTumbleweeds = append(newTumbleweeds, tumbleweed)
+							// collision.NewLabeledSpace(float64((saguaroX+1)*32.0), float64((saguaroY+1)*32.0), 32, 32, tmp)
 						}
 
 					}
