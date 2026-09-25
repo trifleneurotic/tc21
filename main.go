@@ -1219,6 +1219,12 @@ func main() {
 					saguaro = nil
 				}
 
+				for _, tumbleweed := range tumbleweeds {
+					tumbleweed.Renderable.Undraw()
+					tumbleweed.Space.Label = collision.NilLabel
+					tumbleweed = nil
+				}
+
 				for _, safeTile := range safeTiles {
 					safeTile.Renderable.Undraw()
 					safeTile.Space.Label = collision.NilLabel
@@ -1229,6 +1235,7 @@ func main() {
 				safeTiles = safeTiles[:0]
 				tombstones = tombstones[:0]
 				newSaguaros := []*entities.Entity{}
+				newTumbleweeds := []*entities.Entity{}
 
 				for i, row := range saguaroGrid {
 					for j, _ := range row {
@@ -1384,15 +1391,33 @@ func main() {
 								}
 								saguaroPairs[pairID] = append(saguaroPairs[pairID], saguaro)
 							}
+							if saguaroGrid[saguaroX][saguaroY] >= 140 {
+								fmt.Printf("TUMBLEWEED AT %v %v %v\n", saguaroX, saguaroY, saguaroGrid[saguaroX][saguaroY])
+								tmp := TumbleweedLabel + collision.Label(saguaroGrid[saguaroX][saguaroY])
+								tumbleweed := entities.New(ctx,
+									entities.WithRenderable(tumbleweedSprite.Copy()),
+									entities.WithPosition(floatgeom.Point2{float64((saguaroX + 1) * 32.0), float64((saguaroY + 1) * 32.0)}),
+									entities.WithLabel(tmp),
+								)
+
+								newTumbleweeds = append(tumbleweeds, tumbleweed)
+								// collision.NewLabeledSpace(float64((saguaroX+1)*32.0), float64((saguaroY+1)*32.0), 32, 32, tmp)
+							}
 						}
 
 					}
 				}
 
 				saguaros = newSaguaros
+				tumbleweeds = newTumbleweeds
 
 				for _, saguaro := range saguaros {
 					render.Draw(saguaro.Renderable)
+				}
+
+				for _, tumbleweed := range tumbleweeds {
+					render.Draw(tumbleweed.Renderable)
+					collision.UpdateSpace(tumbleweed.X(), tumbleweed.Y(), 32.0, 32.0, tumbleweed.Space)
 				}
 
 				schooner.SetX(0)
