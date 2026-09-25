@@ -1237,6 +1237,7 @@ func main() {
 				}
 
 				dayPairLimit++
+				dayTumbleweedLimit++
 				pairCounter = 0
 				saguaroCounter = 0
 				safeCounter = 0
@@ -1266,6 +1267,23 @@ func main() {
 							saguaroX = rand.IntN(saguaroGridXMax)
 							saguaroY = rand.IntN(saguaroGridYMax)
 
+						}
+					}
+				}
+
+				for i := 0; i < dayTumbleweedLimit; i++ {
+					saguaroX := rand.IntN(saguaroGridXMax)
+					saguaroY := rand.IntN(saguaroGridYMax)
+
+					saguaroFound := false
+					for !saguaroFound {
+						if saguaroGrid[saguaroX][saguaroY] == 0 && !hasNeighbors(saguaroGrid, saguaroX, saguaroY) {
+							saguaroGrid[saguaroX][saguaroY] = int(TumbleweedLabel) + tumbleweedCounter
+							saguaroFound = true
+							tumbleweedCounter++
+						} else {
+							saguaroX = rand.IntN(saguaroGridXMax)
+							saguaroY = rand.IntN(saguaroGridYMax)
 						}
 					}
 				}
