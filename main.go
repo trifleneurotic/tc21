@@ -54,12 +54,14 @@ var (
 	enemySpawnEvent  = event.RegisterEvent[*scene.Context]()
 	enemyActionReady = event.RegisterEvent[*entities.Entity]()
 	newDayEvent      = event.RegisterEvent[*scene.Context]()
+	tumbleweedEvent  = event.RegisterEvent[*scene.Context]()
 	morgs            []*entities.Entity
 )
 
 var enemyIDCounter = 30
 var enemyCounter = 0
 var saguaroPairs = map[int][]*entities.Entity{}
+var tumbleweeds []*entities.Entity
 var shootPlayer *oto.Player
 var explosionPlayer *oto.Player
 var eatenPlayer *oto.Player
@@ -431,6 +433,40 @@ func main() {
 				return 0
 			})
 
+			event.GlobalBind(ctx, tumbleweedEvent, func(c *scene.Context) event.Response {
+				fmt.Println("%%%%%%% TUMBLEWEED MOVING")
+				idx := rand.IntN(len(tumbleweeds))
+				tumbleweedToMove := tumbleweeds[idx]
+
+				if CheckAdjacent(tumbleweedToMove.Space, ctx.CollisionTree, Up) == nil {
+					tumbleweedToMove.SetPos(floatgeom.Point2{tumbleweedToMove.X(), tumbleweedToMove.Y() - 16.0})
+					collision.UpdateSpace(tumbleweedToMove.X(), tumbleweedToMove.Y()-16.0, 16, 16, tumbleweedToMove.Space)
+				} else if CheckAdjacent(tumbleweedToMove.Space, ctx.CollisionTree, Down) == nil {
+					tumbleweedToMove.SetPos(floatgeom.Point2{tumbleweedToMove.X(), tumbleweedToMove.Y() + 16.0})
+					collision.UpdateSpace(tumbleweedToMove.X(), tumbleweedToMove.Y()+16.0, 16, 16, tumbleweedToMove.Space)
+				} else if CheckAdjacent(tumbleweedToMove.Space, ctx.CollisionTree, Left) == nil {
+					tumbleweedToMove.SetPos(floatgeom.Point2{tumbleweedToMove.X() - 16.0, tumbleweedToMove.Y()})
+					collision.UpdateSpace(tumbleweedToMove.X()-16.0, tumbleweedToMove.Y(), 16, 16, tumbleweedToMove.Space)
+				} else if CheckAdjacent(tumbleweedToMove.Space, ctx.CollisionTree, Right) == nil {
+					tumbleweedToMove.SetPos(floatgeom.Point2{tumbleweedToMove.X() + 16.0, tumbleweedToMove.Y()})
+					collision.UpdateSpace(tumbleweedToMove.X()+16.0, tumbleweedToMove.Y(), 16, 16, tumbleweedToMove.Space)
+				} else if CheckAdjacent(tumbleweedToMove.Space, ctx.CollisionTree, DownLeft) == nil {
+					tumbleweedToMove.SetPos(floatgeom.Point2{tumbleweedToMove.X() - 16.0, tumbleweedToMove.Y() + 16.0})
+					collision.UpdateSpace(tumbleweedToMove.X()-16.0, tumbleweedToMove.Y()+16.0, 16, 16, tumbleweedToMove.Space)
+				} else if CheckAdjacent(tumbleweedToMove.Space, ctx.CollisionTree, DownRight) == nil {
+					tumbleweedToMove.SetPos(floatgeom.Point2{tumbleweedToMove.X() + 16.0, tumbleweedToMove.Y() + 16.0})
+					collision.UpdateSpace(tumbleweedToMove.X()+16.0, tumbleweedToMove.Y()+16.0, 16, 16, tumbleweedToMove.Space)
+				} else if CheckAdjacent(tumbleweedToMove.Space, ctx.CollisionTree, UpRight) == nil {
+					tumbleweedToMove.SetPos(floatgeom.Point2{tumbleweedToMove.X() + 16.0, tumbleweedToMove.Y() - 16.0})
+					collision.UpdateSpace(tumbleweedToMove.X()+16.0, tumbleweedToMove.Y()-16.0, 16, 16, tumbleweedToMove.Space)
+				} else if CheckAdjacent(tumbleweedToMove.Space, ctx.CollisionTree, UpLeft) == nil {
+					tumbleweedToMove.SetPos(floatgeom.Point2{tumbleweedToMove.X() - 16.0, tumbleweedToMove.Y() - 16.0})
+					collision.UpdateSpace(tumbleweedToMove.X()-16.0, tumbleweedToMove.Y()-16.0, 16, 16, tumbleweedToMove.Space)
+				}
+
+				return 0
+			})
+
 			go func() {
 				ticker := time.NewTicker(13 * time.Second)
 				defer ticker.Stop()
@@ -438,6 +474,19 @@ func main() {
 					select {
 					case <-ticker.C:
 						event.DefaultBus.Trigger(enemySpawnEvent.UnsafeEventID, ctx)
+					case <-ctx.Done():
+						return
+					}
+				}
+			}()
+
+			go func() {
+				ticker := time.NewTicker(7 * time.Second)
+				defer ticker.Stop()
+				for {
+					select {
+					case <-ticker.C:
+						event.DefaultBus.Trigger(tumbleweedEvent.UnsafeEventID, ctx)
 					case <-ctx.Done():
 						return
 					}
@@ -474,7 +523,6 @@ func main() {
 			var oldBulletY float64
 			var schoonerDelta floatgeom.Point2
 			var tombstones []*entities.Entity
-			var tumbleweeds []*entities.Entity
 
 			saguaroPairs = make(map[int][]*entities.Entity)
 
@@ -770,6 +818,55 @@ func main() {
 
 				}
 
+				var idxTumbleweed int = -1
+
+				for idx, tumbleweed := range tumbleweeds {
+
+					collision.UpdateSpace(tumbleweed.X(), tumbleweed.Y(), 32.0, 32.0, tumbleweed.Space)
+
+					hit = collision.HitLabel(schooner.Space, tumbleweed.Space.Label)
+
+					if bulletAlive {
+						collision.UpdateSpace(bullet.X(), bullet.Y(), 8.0, 8.0, bullet.Space)
+						bulletHit = collision.HitLabel(tumbleweed.Space, bullet.Space.Label)
+
+						if bulletHit != nil {
+							collision.UpdateSpace(oldBulletX, oldBulletY, 8.0, 8.0, bullet.Space)
+
+							_, err := explosionPlayer.Seek(0, io.SeekStart)
+							if err != nil {
+								panic("player.Seek failed: " + err.Error())
+							}
+
+							explosionPlayer.Play()
+
+							populationCount += 100
+							population.SetString(fmt.Sprintf("Population: %v", populationCount))
+
+							idxTumbleweed = idx
+							fmt.Println("UNDRAWING")
+							bulletSprite.Undraw()
+							if bullet != nil {
+								bullet = nil
+							}
+							bulletAlive = false
+
+							tumbleweed.Renderable.Undraw()
+						}
+					}
+
+					if hit != nil {
+						fmt.Println("schooner hit tumbleweed")
+						//schooner.ShiftPos(-schoonerDelta.X(), -schoonerDelta.Y())
+					}
+
+				}
+
+				if idxTumbleweed > -1 {
+					tumbleweeds = slices.Delete(tumbleweeds, idxTumbleweed, idxTumbleweed+1)
+					tumbleweedCounter--
+				}
+
 				for idx, morg := range morgs {
 
 					pt := floatgeom.Point2{morg.X(), morg.Y()}
@@ -872,7 +969,7 @@ func main() {
 								morg.Renderable.Undraw()
 								newMorg := entities.New(ctx,
 									entities.WithLabel(tmp),
-									entities.WithRenderable(render.NewColorBox(32, 32, color.RGBA{0, 255, 255, 255})),
+									entities.WithRenderable(alienSprite.Copy()),
 								)
 								newMorg.SetPos(floatgeom.Point2{saguaroPairs[toRemove][0].X(), saguaroPairs[toRemove][0].Y()})
 								morgs = append(morgs, newMorg)
