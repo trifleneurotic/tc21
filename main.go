@@ -63,10 +63,13 @@ var enemyCounter = 0
 var saguaroPairs = map[int][]*entities.Entity{}
 var tumbleweeds []*entities.Entity
 var shootPlayer *oto.Player
+var tombstoneThemePlayer *oto.Player
 var explosionPlayer *oto.Player
 var eatenPlayer *oto.Player
 var otoContext *oto.Context
 var alienSprite *render.Sprite
+var audioInited bool
+var op *oto.NewContextOptions
 
 // Direction offset pairs for all 8 neighbors (Row, Column)
 var directions = [][2]int{
@@ -98,6 +101,10 @@ func initSound() {
 	if err != nil {
 		panic("Failed to read WAV file: " + err.Error())
 	}
+	tombstoneThemeBytes, err := os.ReadFile("assets/audio/tombstoneTheme.wav")
+	if err != nil {
+		panic("Failed to read WAV file: " + err.Error())
+	}
 
 	_, _, _, shootReader, err := parseWav(shootBytes)
 	if err != nil {
@@ -114,9 +121,32 @@ func initSound() {
 		panic("Failed to parse WAV: " + err.Error())
 	}
 
+	sampleRate, channelCount, format, tombstoneThemeReader, err := parseWav(tombstoneThemeBytes)
+	if err != nil {
+		panic("Failed to parse WAV: " + err.Error())
+	}
+
+	op = &oto.NewContextOptions{
+		SampleRate:   sampleRate,   // Automatically matches the WAV file (e.g., 44100)
+		ChannelCount: channelCount, // Automatically matches the WAV file (e.g., 2)
+		Format:       format,       // Matches bit depth (e.g., FormatSignedInt16LE)
+	}
+
+	otoCtx, readyChan, err := oto.NewContext(op)
+	if err != nil {
+		panic("oto.NewContext failed: " + err.Error())
+	}
+
+	// Wait for hardware audio devices to initialize
+	<-readyChan
+
+	otoContext = otoCtx
+
 	shootPlayer = otoContext.NewPlayer(shootReader)
 	eatenPlayer = otoContext.NewPlayer(eatenReader)
 	explosionPlayer = otoContext.NewPlayer(explosionReader)
+	tombstoneThemePlayer = otoContext.NewPlayer(tombstoneThemeReader)
+	audioInited = true
 }
 
 // Simple minimal WAV header parser to get format data and skip to PCM data
@@ -513,6 +543,7 @@ func main() {
 			var lockedBulletDirection float32
 			var saguaroSprite *render.Sprite
 			var tumbleweedSprite *render.Sprite
+			var explosionSprite *render.Sprite
 			var saguaroGridXMax int
 			var saguaroGridYMax int
 			var saguaroCounter int = 0
@@ -554,13 +585,14 @@ func main() {
 				}
 			}
 
-			initSound()
+			//initSound()
 
 			saguaroSprite, err = render.LoadSprite(filepath.Join("assets/images/saguaro1.png"))
 			tombstoneSprite, err = render.LoadSprite(filepath.Join("assets/images/tombstone.png"))
 			transparentSprite, err = render.LoadSprite(filepath.Join("assets/images/transparent.png"))
 			alienSprite, err = render.LoadSprite(filepath.Join("assets/images/alien.png"))
 			tumbleweedSprite, err = render.LoadSprite(filepath.Join("assets/images/tweed.png"))
+			explosionSprite, err = render.LoadSprite(filepath.Join("assets/images/explosion.png"))
 
 			var pairMade = false
 
@@ -853,7 +885,25 @@ func main() {
 							}
 							bulletAlive = false
 
+							explosionX := tumbleweed.X()
+							explosionY := tumbleweed.Y()
+
+							newExp := entities.New(ctx,
+								entities.WithRenderable(explosionSprite.Copy()),
+							)
+							newExp.SetPos(floatgeom.Point2{explosionX, explosionY})
+
 							tumbleweed.Renderable.Undraw()
+
+							render.Draw(newExp.Renderable)
+
+							go func() {
+								time.Sleep(500 * time.Millisecond)
+
+								// Uninitialize/remove the renderable from the screen
+								newExp.Renderable.Undraw()
+							}()
+
 						}
 					}
 
@@ -900,15 +950,19 @@ func main() {
 
 					if collision.HitLabel(schooner.Space, morg.Space.Label) != nil {
 						livesCount--
-						lives.SetString(fmt.Sprintf("Schooners: %v", livesCount))
-						schooner.SetX(400)
-						schooner.SetY(300)
-						_, err := eatenPlayer.Seek(0, io.SeekStart)
-						if err != nil {
-							panic("player.Seek failed: " + err.Error())
-						}
+						if livesCount == 0 {
+							ctx.Window.NextScene()
+						} else {
+							lives.SetString(fmt.Sprintf("Schooners: %v", livesCount))
+							schooner.SetX(400)
+							schooner.SetY(300)
+							_, err := eatenPlayer.Seek(0, io.SeekStart)
+							if err != nil {
+								panic("player.Seek failed: " + err.Error())
+							}
 
-						eatenPlayer.Play()
+							eatenPlayer.Play()
+						}
 
 					}
 
@@ -1439,6 +1493,43 @@ func main() {
 				return 0
 			})
 		},
+		End: func() (nextScene string, result *scene.Result) {
+			fmt.Println("ENDING!!!!!!!!!!!!!!!!!!!!!!!!!")
+			return "gameOverScene", &scene.Result{
+				Transition: scene.Fade(1, 10),
+			}
+		},
+	})
+
+	oak.AddScene("gameOverScene", scene.Scene{
+		Start: func(ctx *scene.Context) {
+			textColor := color.RGBA{R: 0, G: 0, B: 0, A: 255}
+
+			fontGen := render.FontGenerator{
+				File:  "assets/fonts/Durango Western Eroded Demo.otf", // Path to your TTF file
+				Size:  32.0,
+				Color: image.NewUniform(textColor), // Wrap with image.NewUniform
+			}
+			myFont, err := fontGen.Generate()
+			if err != nil {
+				panic(err)
+			}
+
+			textRenderable := myFont.NewText(fmt.Sprintf("Game Over"), 220, 100)
+			render.Draw(textRenderable)
+
+			go func() {
+				time.Sleep(6 * time.Second)
+				ctx.Window.NextScene()
+			}()
+
+		},
+		End: func() (nextScene string, result *scene.Result) {
+			fmt.Println("STARTING!!!!!!!!!!!!!!!!!!!!!!!!!")
+			return "titleScene", &scene.Result{
+				Transition: scene.Fade(1, 10),
+			}
+		},
 	})
 
 	oak.AddScene("titleScene", scene.Scene{
@@ -1470,43 +1561,17 @@ func main() {
 			textRenderable = font.NewText(fmt.Sprintf("press S to begin"), 320, 150)
 			render.Draw(textRenderable)
 
-			// 1. Read the WAV file into memory
-			fileBytes, err := os.ReadFile("assets/audio/tombstonetheme.wav")
-			if err != nil {
-				panic("Failed to read WAV file: " + err.Error())
-			}
-
-			// 2. Parse basic WAV information
-			sampleRate, channelCount, format, pcmReader, err := parseWav(fileBytes)
-			if err != nil {
-				panic("Failed to parse WAV: " + err.Error())
-			}
-
-			// 3. Configure and initialize the Oto context
-			op := &oto.NewContextOptions{
-				SampleRate:   sampleRate,   // Automatically matches the WAV file (e.g., 44100)
-				ChannelCount: channelCount, // Automatically matches the WAV file (e.g., 2)
-				Format:       format,       // Matches bit depth (e.g., FormatSignedInt16LE)
-			}
-
-			// Initialize context. Note: You should only create ONE context per application lifecycle.
-			otoCtx, readyChan, err := oto.NewContext(op)
-			if err != nil {
-				panic("oto.NewContext failed: " + err.Error())
-			}
-
-			// Wait for hardware audio devices to initialize
-			<-readyChan
-
-			otoContext = otoCtx
-
 			// 4. Create the player and execute asynchronous playback
-			player := otoCtx.NewPlayer(pcmReader)
-			player.Play()
+			_, err = tombstoneThemePlayer.Seek(0, io.SeekStart)
+			if err != nil {
+				panic("player.Seek failed: " + err.Error())
+			}
+			tombstoneThemePlayer.Play()
 
 			event.GlobalBind(event.DefaultBus, event.Enter, func(ev event.EnterPayload) event.Response {
 
 				if oak.IsDown(key.S) {
+					tombstoneThemePlayer.Pause()
 					fmt.Println("starting.....")
 					ctx.Window.GoToScene("firstScene")
 				}
@@ -1521,6 +1586,7 @@ func main() {
 		c.Screen.Height = 700
 		c.Screen.Scale = 1
 		c.Title = "Tombstone City: 21st Century"
+		initSound()
 		return c, nil
 	})
 }
