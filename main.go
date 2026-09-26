@@ -769,7 +769,7 @@ func main() {
 			}
 			schooner = entities.New(ctx,
 				entities.WithRenderable(schoonerSprite),
-				entities.WithPosition(floatgeom.Point2{0, 0}),
+				entities.WithPosition(floatgeom.Point2{400, 300}),
 				entities.WithLabel(SchoonerLabel),
 			)
 
