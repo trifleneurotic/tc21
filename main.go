@@ -552,8 +552,8 @@ func main() {
 			var tumbleweedCounter int = 0
 			var dayPairLimit = 2
 			var dayTumbleweedLimit = 5
-			var oldBulletX float64
-			var oldBulletY float64
+			// var oldBulletX float64
+			// var oldBulletY float64
 			var schoonerDelta floatgeom.Point2
 			var tombstones []*entities.Entity
 
@@ -594,8 +594,6 @@ func main() {
 			tumbleweedSprite, err = render.LoadSprite(filepath.Join("assets/images/tweed.png"))
 			explosionSprite, err = render.LoadSprite(filepath.Join("assets/images/explosion.png"))
 
-			var pairMade = false
-
 			// make 10 saguaros, making sure that a saguaro isn't already there
 			for i := 0; i < 10; i++ {
 				saguaroX := rand.IntN(saguaroGridXMax)
@@ -614,51 +612,45 @@ func main() {
 				}
 			}
 
-			for i, row := range saguaroGrid {
-				pairMade = false
-				for j, val := range row {
-					// if a saguaro is there and it doesn't have neighbors....
-					if val == 1 && !hasNeighbors(saguaroGrid, i, j) {
-						// ....pick a direction at random....
-						dirIndex := rand.IntN(8)
+			for true {
+				saguaroX := rand.IntN(saguaroGridXMax)
+				saguaroY := rand.IntN(saguaroGridYMax)
 
-						pairCounter++
+				if saguaroGrid[saguaroX][saguaroY] == 1 && !hasNeighbors(saguaroGrid, saguaroX, saguaroY) {
+					dirIndex := rand.IntN(8)
 
-						saguaroGrid[i][j] = int(PairLabel) + pairCounter
+					pairCounter++
 
-						saguaroIndexX := i + (directions[dirIndex][0])
-						saguaroIndexY := j + (directions[dirIndex][1])
+					saguaroGrid[saguaroX][saguaroY] = int(PairLabel) + pairCounter
 
-						fmt.Printf("ij -> %v %v\n", saguaroIndexX, saguaroIndexY)
+					saguaroIndexX := saguaroX + (directions[dirIndex][0])
+					saguaroIndexY := saguaroY + (directions[dirIndex][1])
 
-						if saguaroIndexX == -1 {
-							saguaroIndexX = 1
-						}
+					fmt.Printf("ij -> %v %v\n", saguaroIndexX, saguaroIndexY)
 
-						if saguaroIndexY == -1 {
-							saguaroIndexY = 1
-						}
-
-						if saguaroIndexY == 14 {
-							saguaroIndexY--
-						}
-
-						if saguaroIndexX == 14 {
-							saguaroIndexX--
-						}
-
-						fmt.Printf("saguaro index -> %v %v\n", saguaroIndexX, saguaroIndexY)
-						// ...and put a saguaro there to make a single pair only
-						saguaroGrid[saguaroIndexX][saguaroIndexY] = int(PairLabel) + pairCounter
-						pairMade = true
-						fmt.Printf("pair made!!!! %v\n", saguaroGrid[saguaroIndexX][saguaroIndexY])
-						if pairCounter == dayPairLimit {
-							break
-						}
+					if saguaroIndexX == -1 {
+						saguaroIndexX = 1
 					}
-				}
-				if pairMade && pairCounter == dayPairLimit {
-					break
+
+					if saguaroIndexY == -1 {
+						saguaroIndexY = 1
+					}
+
+					if saguaroIndexY == 14 {
+						saguaroIndexY--
+					}
+
+					if saguaroIndexX == 14 {
+						saguaroIndexX--
+					}
+
+					fmt.Printf("saguaro index -> %v %v\n", saguaroIndexX, saguaroIndexY)
+					// ...and put a saguaro there to make a single pair only
+					saguaroGrid[saguaroIndexX][saguaroIndexY] = int(PairLabel) + pairCounter
+					fmt.Printf("pair made!!!! %v\n", saguaroGrid[saguaroIndexX][saguaroIndexY])
+					if pairCounter == dayPairLimit {
+						break
+					}
 				}
 			}
 
@@ -807,10 +799,11 @@ func main() {
 						bulletHit = collision.HitLabel(ts.Space, bullet.Space.Label)
 
 						if bulletHit != nil {
-							collision.UpdateSpace(oldBulletX, oldBulletY, 8.0, 8.0, bullet.Space)
-							fmt.Println("UNDRAWING")
+							// collision.UpdateSpace(oldBulletX, oldBulletY, 8.0, 8.0, bullet.Space)
+							fmt.Println("UNDRAWING 811")
 							bulletSprite.Undraw()
 							if bullet != nil {
+								collision.Remove(bullet.Space)
 								bullet = nil
 							}
 							bulletAlive = false
@@ -834,10 +827,11 @@ func main() {
 						bulletHit = collision.HitLabel(saguaro.Space, bullet.Space.Label)
 
 						if bulletHit != nil {
-							collision.UpdateSpace(oldBulletX, oldBulletY, 8.0, 8.0, bullet.Space)
-							fmt.Println("UNDRAWING")
+							// collision.UpdateSpace(oldBulletX, oldBulletY, 8.0, 8.0, bullet.Space)
+							fmt.Println("UNDRAWING 838")
 							bulletSprite.Undraw()
 							if bullet != nil {
+								collision.Remove(bullet.Space)
 								bullet = nil
 							}
 							bulletAlive = false
@@ -865,7 +859,7 @@ func main() {
 						bulletHit = collision.HitLabel(tumbleweed.Space, bullet.Space.Label)
 
 						if bulletHit != nil {
-							collision.UpdateSpace(oldBulletX, oldBulletY, 8.0, 8.0, bullet.Space)
+							// collision.UpdateSpace(oldBulletX, oldBulletY, 8.0, 8.0, bullet.Space)
 
 							_, err := explosionPlayer.Seek(0, io.SeekStart)
 							if err != nil {
@@ -878,9 +872,10 @@ func main() {
 							population.SetString(fmt.Sprintf("Population: %v", populationCount))
 
 							idxTumbleweed = idx
-							fmt.Println("UNDRAWING")
+							fmt.Println("UNDRAWING 881")
 							bulletSprite.Undraw()
 							if bullet != nil {
+								collision.Remove(bullet.Space)
 								bullet = nil
 							}
 							bulletAlive = false
@@ -894,6 +889,7 @@ func main() {
 							newExp.SetPos(floatgeom.Point2{explosionX, explosionY})
 
 							tumbleweed.Renderable.Undraw()
+							collision.Remove(tumbleweed.Space)
 
 							render.Draw(newExp.Renderable)
 
@@ -990,6 +986,9 @@ func main() {
 									v[0].Renderable.Undraw()
 									v[1].Renderable.Undraw()
 
+									collision.Remove(v[0].Space)
+									collision.Remove(v[1].Space)
+
 									toRemove = k
 									pairsToDelete = append(pairsToDelete, k)
 									pairHit = true
@@ -1012,9 +1011,16 @@ func main() {
 								}
 							}
 
-							collision.UpdateSpace(oldBulletX, oldBulletY, 8.0, 8.0, bullet.Space)
+							// collision.UpdateSpace(oldBulletX, oldBulletY, 8.0, 8.0, bullet.Space)
+
 							fmt.Println("UNDRAWING BULLET AND REPLACING MORG")
 							bulletSprite.Undraw()
+							if bullet != nil {
+								collision.Remove(bullet.Space)
+								bullet = nil
+							}
+							bulletAlive = false
+
 							populationCount += 150
 							population.SetString(fmt.Sprintf("Population: %v", populationCount))
 
@@ -1022,7 +1028,27 @@ func main() {
 								fmt.Printf("LENGTH OF PAIRSTODLETE%v\n", len(pairsToDelete))
 								enemyCounter++
 								tmp := MorgLabel + collision.Label(enemyCounter)
+
+								explosionX := morg.X()
+								explosionY := morg.Y()
+
+								newExp := entities.New(ctx,
+									entities.WithRenderable(explosionSprite.Copy()),
+								)
+								newExp.SetPos(floatgeom.Point2{explosionX, explosionY})
+
 								morg.Renderable.Undraw()
+								collision.Remove(morg.Space)
+
+								render.Draw(newExp.Renderable)
+
+								go func() {
+									time.Sleep(500 * time.Millisecond)
+
+									// Uninitialize/remove the renderable from the screen
+									newExp.Renderable.Undraw()
+								}()
+
 								newMorg := entities.New(ctx,
 									entities.WithLabel(tmp),
 									entities.WithRenderable(alienSprite.Copy()),
@@ -1058,14 +1084,30 @@ func main() {
 								}
 
 								saguaros = append(saguaros, s)
+
+								explosionX := morg.X()
+								explosionY := morg.Y()
+
+								newExp := entities.New(ctx,
+									entities.WithRenderable(explosionSprite.Copy()),
+								)
+								newExp.SetPos(floatgeom.Point2{explosionX, explosionY})
+
 								morg.Renderable.Undraw()
+								collision.Remove(morg.Space)
+
+								render.Draw(newExp.Renderable)
+
+								go func() {
+									time.Sleep(500 * time.Millisecond)
+
+									// Uninitialize/remove the renderable from the screen
+									newExp.Renderable.Undraw()
+								}()
+
 								render.Draw(s.Renderable)
 							}
 
-							//if bullet != nil {
-							//		bullet = nil
-							//	}
-							bulletAlive = false
 							idxMorg = idx
 
 						}
@@ -1239,8 +1281,8 @@ func main() {
 				}
 
 				if bullet != nil {
-					oldBulletX = bullet.X()
-					oldBulletY = bullet.Y()
+					// oldBulletX = bullet.X()
+					// oldBulletY = bullet.Y()
 
 					newBulletX := bullet.X()
 					newBulletY := bullet.Y()
@@ -1260,6 +1302,7 @@ func main() {
 					if newBulletX < 0 || newBulletX > 800 || newBulletY < 0 || newBulletY > 600 {
 						bulletSprite.Undraw()
 						if bullet != nil {
+							collision.Remove(bullet.Space)
 							bullet = nil
 						}
 						bulletAlive = false
@@ -1271,18 +1314,21 @@ func main() {
 				fmt.Println("********it's a BRAND NEW DAY*********")
 				for _, saguaro := range saguaros {
 					saguaro.Renderable.Undraw()
+					collision.Remove(saguaro.Space)
 					saguaro.Space.Label = collision.NilLabel
 					saguaro = nil
 				}
 
 				for _, tumbleweed := range tumbleweeds {
 					tumbleweed.Renderable.Undraw()
+					collision.Remove(tumbleweed.Space)
 					tumbleweed.Space.Label = collision.NilLabel
 					tumbleweed = nil
 				}
 
 				for _, safeTile := range safeTiles {
 					safeTile.Renderable.Undraw()
+					collision.Remove(safeTile.Space)
 					safeTile.Space.Label = collision.NilLabel
 					safeTile = nil
 				}
@@ -1313,8 +1359,6 @@ func main() {
 						saguaroGrid[safeZoneXStart][safeZoneYStart] = 77
 					}
 				}
-
-				var pairMade = false
 
 				// make 10 saguaros, making sure that a saguaro isn't already there
 				for i := 0; i < 10; i++ {
@@ -1351,51 +1395,45 @@ func main() {
 					}
 				}
 
-				for i, row := range saguaroGrid {
-					pairMade = false
-					for j, val := range row {
-						// if a saguaro is there and it doesn't have neighbors....
-						if val == 1 && !hasNeighbors(saguaroGrid, i, j) {
-							// ....pick a direction at random....
-							dirIndex := rand.IntN(8)
+				for true {
+					saguaroX := rand.IntN(saguaroGridXMax)
+					saguaroY := rand.IntN(saguaroGridYMax)
 
-							pairCounter++
+					if saguaroGrid[saguaroX][saguaroY] == 1 && !hasNeighbors(saguaroGrid, saguaroX, saguaroY) {
+						dirIndex := rand.IntN(8)
 
-							saguaroGrid[i][j] = int(PairLabel) + pairCounter
+						pairCounter++
 
-							saguaroIndexX := i + (directions[dirIndex][0])
-							saguaroIndexY := j + (directions[dirIndex][1])
+						saguaroGrid[saguaroX][saguaroY] = int(PairLabel) + pairCounter
 
-							fmt.Printf("ij -> %v %v\n", saguaroIndexX, saguaroIndexY)
+						saguaroIndexX := saguaroX + (directions[dirIndex][0])
+						saguaroIndexY := saguaroY + (directions[dirIndex][1])
 
-							if saguaroIndexX == -1 {
-								saguaroIndexX = 1
-							}
+						fmt.Printf("ij -> %v %v\n", saguaroIndexX, saguaroIndexY)
 
-							if saguaroIndexY == -1 {
-								saguaroIndexY = 1
-							}
-
-							if saguaroIndexY == 14 {
-								saguaroIndexY--
-							}
-
-							if saguaroIndexX == 14 {
-								saguaroIndexX--
-							}
-
-							fmt.Printf("saguaro index -> %v %v\n", saguaroIndexX, saguaroIndexY)
-							// ...and put a saguaro there to make a single pair only
-							saguaroGrid[saguaroIndexX][saguaroIndexY] = int(PairLabel) + pairCounter
-							pairMade = true
-							fmt.Printf("pair made!!!! %v\n", saguaroGrid[saguaroIndexX][saguaroIndexY])
-							if pairCounter == dayPairLimit {
-								break
-							}
+						if saguaroIndexX == -1 {
+							saguaroIndexX = 1
 						}
-					}
-					if pairMade && pairCounter == dayPairLimit {
-						break
+
+						if saguaroIndexY == -1 {
+							saguaroIndexY = 1
+						}
+
+						if saguaroIndexY == 14 {
+							saguaroIndexY--
+						}
+
+						if saguaroIndexX == 14 {
+							saguaroIndexX--
+						}
+
+						fmt.Printf("saguaro index -> %v %v\n", saguaroIndexX, saguaroIndexY)
+						// ...and put a saguaro there to make a single pair only
+						saguaroGrid[saguaroIndexX][saguaroIndexY] = int(PairLabel) + pairCounter
+						fmt.Printf("pair made!!!! %v\n", saguaroGrid[saguaroIndexX][saguaroIndexY])
+						if pairCounter == dayPairLimit {
+							break
+						}
 					}
 				}
 
