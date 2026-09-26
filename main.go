@@ -388,7 +388,7 @@ func main() {
 	myColor := color.RGBA{R: 194, G: 178, B: 128, A: 255}
 	oak.SetColorBackground(image.NewUniform(myColor))
 
-	oak.AddScene("firstScene", scene.Scene{
+	oak.AddScene("mainScene", scene.Scene{
 		Start: func(ctx *scene.Context) {
 			sceneStartTime := time.Now()
 			var oldElapsedSeconds int64
@@ -1611,7 +1611,7 @@ func main() {
 				if oak.IsDown(key.S) {
 					tombstoneThemePlayer.Pause()
 					fmt.Println("starting.....")
-					ctx.Window.GoToScene("firstScene")
+					ctx.Window.GoToScene("mainScene")
 				}
 
 				return 0
