@@ -640,7 +640,7 @@ func main() {
 						saguaroIndexY--
 					}
 
-					if saguaroIndexX == 14 {
+					if saguaroIndexX == 20 {
 						saguaroIndexX--
 					}
 
@@ -1423,7 +1423,7 @@ func main() {
 							saguaroIndexY--
 						}
 
-						if saguaroIndexX == 14 {
+						if saguaroIndexX == 20 {
 							saguaroIndexX--
 						}
 
@@ -1515,8 +1515,8 @@ func main() {
 					collision.UpdateSpace(tumbleweed.X(), tumbleweed.Y(), 32.0, 32.0, tumbleweed.Space)
 				}
 
-				schooner.SetX(0)
-				schooner.SetY(0)
+				schooner.SetX(400)
+				schooner.SetY(300)
 				collision.UpdateSpace(0, 0, 32.0, 32.0, schooner.Space)
 
 				dayCount++
