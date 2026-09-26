@@ -1562,6 +1562,7 @@ func main() {
 
 	oak.AddScene("titleScene", scene.Scene{
 		Start: func(ctx *scene.Context) {
+			SetPlatformIcon("Tombstone City: 21st Century")
 			textColor := color.RGBA{R: 0, G: 0, B: 0, A: 255}
 
 			fg := render.FontGenerator{
