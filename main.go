@@ -552,8 +552,6 @@ func main() {
 			var tumbleweedCounter int = 0
 			var dayPairLimit = 2
 			var dayTumbleweedLimit = 5
-			// var oldBulletX float64
-			// var oldBulletY float64
 			var schoonerDelta floatgeom.Point2
 			var tombstones []*entities.Entity
 
@@ -581,7 +579,7 @@ func main() {
 			for safeZoneXStart := 7; safeZoneXStart <= safeZoneXEnd; safeZoneXStart++ {
 				for safeZoneYStart := 7; safeZoneYStart <= safeZoneYEnd; safeZoneYStart++ {
 					saguaroGrid[safeZoneXStart][safeZoneYStart] = 77
-					fmt.Print("%v %v 77 location\n", safeZoneXStart, safeZoneYStart)
+					fmt.Printf("%v %v 77 location\n", safeZoneXStart, safeZoneYStart)
 				}
 			}
 
@@ -799,7 +797,6 @@ func main() {
 						bulletHit = collision.HitLabel(ts.Space, bullet.Space.Label)
 
 						if bulletHit != nil {
-							// collision.UpdateSpace(oldBulletX, oldBulletY, 8.0, 8.0, bullet.Space)
 							fmt.Println("UNDRAWING 811")
 							bulletSprite.Undraw()
 							if bullet != nil {
@@ -827,7 +824,6 @@ func main() {
 						bulletHit = collision.HitLabel(saguaro.Space, bullet.Space.Label)
 
 						if bulletHit != nil {
-							// collision.UpdateSpace(oldBulletX, oldBulletY, 8.0, 8.0, bullet.Space)
 							fmt.Println("UNDRAWING 838")
 							bulletSprite.Undraw()
 							if bullet != nil {
@@ -859,8 +855,6 @@ func main() {
 						bulletHit = collision.HitLabel(tumbleweed.Space, bullet.Space.Label)
 
 						if bulletHit != nil {
-							// collision.UpdateSpace(oldBulletX, oldBulletY, 8.0, 8.0, bullet.Space)
-
 							_, err := explosionPlayer.Seek(0, io.SeekStart)
 							if err != nil {
 								panic("player.Seek failed: " + err.Error())
@@ -1011,8 +1005,6 @@ func main() {
 								}
 							}
 
-							// collision.UpdateSpace(oldBulletX, oldBulletY, 8.0, 8.0, bullet.Space)
-
 							fmt.Println("UNDRAWING BULLET AND REPLACING MORG")
 							bulletSprite.Undraw()
 							if bullet != nil {
@@ -1116,7 +1108,7 @@ func main() {
 				}
 
 				if idxMorg > -1 {
-					fmt.Println("%v %v", idxMorg, len(morgs))
+					fmt.Printf("%v %v", idxMorg, len(morgs))
 					morgs = slices.Delete(morgs, idxMorg, idxMorg+1)
 				}
 
@@ -1281,8 +1273,6 @@ func main() {
 				}
 
 				if bullet != nil {
-					// oldBulletX = bullet.X()
-					// oldBulletY = bullet.Y()
 
 					newBulletX := bullet.X()
 					newBulletY := bullet.Y()
