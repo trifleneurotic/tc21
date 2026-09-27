@@ -4,6 +4,7 @@
 **Target completion:** October 9
 **Original:** Texas Instruments, TI-99/4A, 1981 (designer John Plaster)
 
+_This design document was compiled through a collaborative process with Claude (Anthropic), combining web research on the original game with the author's firsthand knowledge of its mechanics. Code implementation is entirely human-written._
 ---
 
 ## 1. Overview & Scope
