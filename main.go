@@ -122,7 +122,7 @@ func initSound() {
 	if err != nil {
 		panic("Failed to read WAV file: " + err.Error())
 	}
-	tombstoneThemeBytes, err := embeddedAssets.ReadFile("assets/audio/tombstonetheme.wav")
+	tombstoneThemeBytes, err := embeddedAssets.ReadFile("assets/audio/westernadventuresfesliyan.wav")
 	if err != nil {
 		panic("Failed to read WAV file: " + err.Error())
 	}
