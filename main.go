@@ -366,7 +366,6 @@ func CheckAdjacent(mySpace *collision.Space, myTree *collision.Tree, dir Directi
 
 		}
 
-		fmt.Println(("Hit found!!!!"))
 		// Found a valid, strictly adjacent neighbor!
 
 		results = append(results, AdjacentResult{
@@ -375,7 +374,7 @@ func CheckAdjacent(mySpace *collision.Space, myTree *collision.Tree, dir Directi
 		})
 
 		ent := event.DefaultCallerMap.GetEntity(hit.CID)
-		fmt.Printf("%v\n", ent.CID())
+		fmt.Printf("Hit found!! %v\n", ent.CID())
 		return results
 	}
 
@@ -488,7 +487,6 @@ func main() {
 
 			event.GlobalBind(ctx, tumbleweedEvent, func(c *scene.Context) event.Response {
 				if len(tumbleweeds) > 0 {
-					fmt.Println("%%%%%%% TUMBLEWEED MOVING")
 					idx := rand.IntN(len(tumbleweeds))
 					tumbleweedToMove := tumbleweeds[idx]
 
@@ -597,7 +595,6 @@ func main() {
 			for safeZoneXStart := 7; safeZoneXStart <= safeZoneXEnd; safeZoneXStart++ {
 				for safeZoneYStart := 7; safeZoneYStart <= safeZoneYEnd; safeZoneYStart++ {
 					saguaroGrid[safeZoneXStart][safeZoneYStart] = 77
-					fmt.Printf("%v %v 77 location\n", safeZoneXStart, safeZoneYStart)
 				}
 			}
 
@@ -684,8 +681,6 @@ func main() {
 					saguaroIndexX := saguaroX + (directions[dirIndex][0])
 					saguaroIndexY := saguaroY + (directions[dirIndex][1])
 
-					fmt.Printf("ij -> %v %v\n", saguaroIndexX, saguaroIndexY)
-
 					if saguaroIndexX == -1 {
 						saguaroIndexX = 1
 					}
@@ -702,8 +697,6 @@ func main() {
 						saguaroIndexX--
 					}
 
-					fmt.Printf("saguaro index -> %v %v\n", saguaroIndexX, saguaroIndexY)
-					// ...and put a saguaro there to make a single pair only
 					saguaroGrid[saguaroIndexX][saguaroIndexY] = int(PairLabel) + pairCounter
 					fmt.Printf("pair made!!!! %v\n", saguaroGrid[saguaroIndexX][saguaroIndexY])
 					if pairCounter == dayPairLimit {
@@ -711,24 +704,6 @@ func main() {
 					}
 				}
 			}
-
-			fmt.Println("++++++++++STARTING TUMBLEWEED LOOP")
-			/*for i, row := range saguaroGrid {
-				for j, val := range row {
-					// if nothing is there and it doesn't have neighbors....
-					if val == 0 && !hasNeighbors(saguaroGrid, i, j) {
-						fmt.Println("SETTING TUMBLEWEED")
-						tumbleweedCounter++
-
-						saguaroGrid[i][j] = int(TumbleweedLabel) + tumbleweedCounter
-						break
-					}
-				}
-				if tumbleweedCounter == dayTumbleweedLimit {
-					fmt.Printf("%v TUMBLEWEED LIMIT REACHED", tumbleweedCounter)
-					break
-				}
-			}*/
 
 			for i := 0; i < dayTumbleweedLimit; i++ {
 				saguaroX := rand.IntN(saguaroGridXMax)
@@ -748,12 +723,10 @@ func main() {
 			}
 
 			for saguaroX := 0; saguaroX < saguaroGridXMax; saguaroX++ {
-				fmt.Println("Next ROWWWWWWWWWWWW")
 				for saguaroY := 0; saguaroY < saguaroGridYMax; saguaroY++ {
 					if saguaroGrid[saguaroX][saguaroY] == 77 {
 						safeCounter++
 						if (saguaroX == 7 || saguaroX == 10 || saguaroX == 13) && (saguaroY == 7 || saguaroY == 10 || saguaroY == 13) {
-							fmt.Printf("%v %v safe coord\n", saguaroX, saguaroY)
 							tmp := entities.New(ctx,
 								entities.WithRenderable(SpriteCache["tombstone"].Copy()),
 								entities.WithLabel(SafeLabel+collision.Label(safeCounter)),
@@ -799,7 +772,6 @@ func main() {
 						}
 					}
 					if saguaroGrid[saguaroX][saguaroY] >= 140 {
-						fmt.Printf("TUMBLEWEED AT %v %v %v\n", saguaroX, saguaroY, saguaroGrid[saguaroX][saguaroY])
 						tmp := TumbleweedLabel + collision.Label(saguaroGrid[saguaroX][saguaroY])
 						tumbleweed := entities.New(ctx,
 							entities.WithRenderable(SpriteCache["tweed"].Copy()),
@@ -860,7 +832,6 @@ func main() {
 						bulletHit = collision.HitLabel(ts.Space, bullet.Space.Label)
 
 						if bulletHit != nil {
-							fmt.Println("UNDRAWING 811")
 							bulletSprite.Undraw()
 							if bullet != nil {
 								collision.Remove(bullet.Space)
@@ -887,7 +858,6 @@ func main() {
 						bulletHit = collision.HitLabel(saguaro.Space, bullet.Space.Label)
 
 						if bulletHit != nil {
-							fmt.Println("UNDRAWING 838")
 							bulletSprite.Undraw()
 							if bullet != nil {
 								collision.Remove(bullet.Space)
@@ -899,7 +869,6 @@ func main() {
 					}
 
 					if hit != nil {
-						fmt.Println("schooner hit saguaro")
 						schooner.ShiftPos(-schoonerDelta.X(), -schoonerDelta.Y())
 					}
 
@@ -929,7 +898,6 @@ func main() {
 							population.SetString(fmt.Sprintf("Population: %v", populationCount))
 
 							idxTumbleweed = idx
-							fmt.Println("UNDRAWING 881")
 							bulletSprite.Undraw()
 							if bullet != nil {
 								collision.Remove(bullet.Space)
@@ -960,11 +928,6 @@ func main() {
 						}
 					}
 
-					if hit != nil {
-						fmt.Println("schooner hit tumbleweed")
-						//schooner.ShiftPos(-schoonerDelta.X(), -schoonerDelta.Y())
-					}
-
 				}
 
 				if idxTumbleweed > -1 {
@@ -986,7 +949,6 @@ func main() {
 						if collision.HitLabel(safe.Space, morg.Space.Label) != nil {
 							morg.ShiftPos(-delta.X(), -delta.Y())
 							collision.UpdateSpace(morg.X(), morg.Y(), 32.0, 32.0, morg.Space)
-							fmt.Println("MOrg hit safe zone!!!!!!!!!!!!!!!!!!!!")
 							break
 						}
 					}
@@ -994,7 +956,6 @@ func main() {
 					for _, saguaro := range saguaros {
 						collision.UpdateSpace(saguaro.X(), saguaro.Y(), 32.0, 32.0, saguaro.Space)
 						if collision.HitLabel(saguaro.Space, morg.Space.Label) != nil {
-							fmt.Println("####morg hit saguaro####")
 							morg.ShiftPos(-delta.X(), -delta.Y())
 							collision.UpdateSpace(morg.X(), morg.Y(), 32.0, 32.0, morg.Space)
 							break
@@ -1068,7 +1029,6 @@ func main() {
 								}
 							}
 
-							fmt.Println("UNDRAWING BULLET AND REPLACING MORG")
 							bulletSprite.Undraw()
 							if bullet != nil {
 								collision.Remove(bullet.Space)
@@ -1080,7 +1040,6 @@ func main() {
 							population.SetString(fmt.Sprintf("Population: %v", populationCount))
 
 							if pairHit {
-								fmt.Printf("LENGTH OF PAIRSTODLETE%v\n", len(pairsToDelete))
 								enemyCounter++
 								tmp := MorgLabel + collision.Label(enemyCounter)
 
@@ -1113,7 +1072,7 @@ func main() {
 								event.DefaultBus.Trigger(enemyActionReady.UnsafeEventID, newMorg)
 								for _, pairIdx := range pairsToDelete {
 									delete(saguaroPairs, pairIdx)
-									fmt.Printf("+++++saguaroPairs length NOW %v", len(saguaroPairs))
+									fmt.Printf("+++++saguaroPairs length NOW %v\n", len(saguaroPairs))
 								}
 
 							} else {
@@ -1129,7 +1088,6 @@ func main() {
 
 								for _, saguaro := range saguaros {
 									if CheckAdjacentUsingSpace(s, saguaro) {
-										fmt.Println("NNNNNNNNNNNEW PAIR MADE!")
 										pairCounter++
 										saguaroPairs[int(PairLabel)+pairCounter] = []*entities.Entity{}
 										s.Space.Label = PairLabel + collision.Label(pairCounter)
@@ -1171,7 +1129,6 @@ func main() {
 				}
 
 				if idxMorg > -1 {
-					fmt.Printf("%v %v", idxMorg, len(morgs))
 					morgs = slices.Delete(morgs, idxMorg, idxMorg+1)
 				}
 
@@ -1364,7 +1321,6 @@ func main() {
 				return 0
 			})
 			event.GlobalBind(ctx, newDayEvent, func(c *scene.Context) event.Response {
-				fmt.Println("********it's a BRAND NEW DAY*********")
 				for _, saguaro := range saguaros {
 					saguaro.Renderable.Undraw()
 					collision.Remove(saguaro.Space)
@@ -1462,8 +1418,6 @@ func main() {
 						saguaroIndexX := saguaroX + (directions[dirIndex][0])
 						saguaroIndexY := saguaroY + (directions[dirIndex][1])
 
-						fmt.Printf("ij -> %v %v\n", saguaroIndexX, saguaroIndexY)
-
 						if saguaroIndexX == -1 {
 							saguaroIndexX = 1
 						}
@@ -1495,7 +1449,6 @@ func main() {
 						if saguaroGrid[saguaroX][saguaroY] == 77 {
 							safeCounter++
 							if (saguaroX == 7 || saguaroX == 10 || saguaroX == 13) && (saguaroY == 7 || saguaroY == 10 || saguaroY == 13) {
-								fmt.Printf("%v %v safe coord\n", saguaroX, saguaroY)
 								tmp := entities.New(ctx,
 									entities.WithRenderable(SpriteCache["tombstone"].Copy()),
 									entities.WithLabel(SafeLabel+collision.Label(safeCounter)),
@@ -1541,7 +1494,6 @@ func main() {
 
 						}
 						if saguaroGrid[saguaroX][saguaroY] >= 140 {
-							fmt.Printf("TUMBLEWEED AT %v %v %v\n", saguaroX, saguaroY, saguaroGrid[saguaroX][saguaroY])
 							tmp := TumbleweedLabel + collision.Label(saguaroGrid[saguaroX][saguaroY])
 							tumbleweed := entities.New(ctx,
 								entities.WithRenderable(SpriteCache["tweed"].Copy()),
@@ -1585,7 +1537,6 @@ func main() {
 			})
 		},
 		End: func() (nextScene string, result *scene.Result) {
-			fmt.Println("ENDING!!!!!!!!!!!!!!!!!!!!!!!!!")
 			return "gameOverScene", &scene.Result{
 				Transition: scene.Fade(1, 10),
 			}
@@ -1616,7 +1567,6 @@ func main() {
 
 		},
 		End: func() (nextScene string, result *scene.Result) {
-			fmt.Println("STARTING!!!!!!!!!!!!!!!!!!!!!!!!!")
 			return "titleScene", &scene.Result{
 				Transition: scene.Fade(1, 10),
 			}
