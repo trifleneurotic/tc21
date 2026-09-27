@@ -1562,11 +1562,28 @@ func main() {
 
 	oak.AddScene("titleScene", scene.Scene{
 		Start: func(ctx *scene.Context) {
+			saguaroTitleSprite, err := render.LoadSprite(filepath.Join("assets/images/saguaro2.png"))
+			saguaroTitleEntity := entities.New(ctx,
+				entities.WithRenderable(saguaroTitleSprite.Copy()),
+				entities.WithPosition(floatgeom.Point2{float64(330.0), float64(460.0)}),
+			)
+			render.Draw(saguaroTitleEntity.Renderable)
+
+			instructionsLine1 := "- saguaro pairs are spawn points for alien morgs"
+			instructionsLine2 := "- shoot morgs when they are adjacent to saguaro pairs to remove those spawn points"
+			instructionsLine3 := "- centre grid of tombstones is a safe zone where morgs won't venture"
+			instructionsLine4 := "- shoot tumbleweeds & morgs to help increase population (score = population)"
+			instructionsLine5 := "- morgs become saguaro when shot (W/A/S/D; Space to fire)"
+			instructionsLine6 := "- be careful where you shoot a morg since they turn into a saguaro:"
+			instructionsLine7 := "    1. shooting a morg next to another saguaro will make a new spawn point"
+			instructionsLine8 := "    2. shooting a morg at a safe zone exit point will block that exit point for the day (day = round)"
+			instructionsLine9 := "- new day begins when all old spawn points gone, but new day will start with more new spawn points"
+
 			SetPlatformIcon("Tombstone City: 21st Century")
 			textColor := color.RGBA{R: 0, G: 0, B: 0, A: 255}
 
 			fg := render.FontGenerator{
-				Size:  24,
+				Size:  16,
 				Color: image.NewUniform(textColor),
 				File:  "assets/fonts/LiberationSans-Regular.ttf",
 			}
@@ -1585,9 +1602,39 @@ func main() {
 				panic(err)
 			}
 
+			fontGen2 := render.FontGenerator{
+				File:  "assets/fonts/Durango Western Eroded Demo.otf", // Path to your TTF file
+				Size:  26.0,
+				Color: image.NewUniform(textColor), // Wrap with image.NewUniform
+			}
+			myFont2, err := fontGen2.Generate()
+			if err != nil {
+				panic(err)
+			}
+
 			textRenderable := myFont.NewText(fmt.Sprintf("Tombstone City: 21st Century"), 220, 100)
 			render.Draw(textRenderable)
-			textRenderable = font.NewText(fmt.Sprintf("press S to begin"), 320, 150)
+			textRenderable = myFont2.NewText(fmt.Sprintf("Instructions"), 330, 150)
+			render.Draw(textRenderable)
+			textRenderable = font.NewText(fmt.Sprintf(instructionsLine1), 60, 190)
+			render.Draw(textRenderable)
+			textRenderable = font.NewText(fmt.Sprintf(instructionsLine2), 60, 210)
+			render.Draw(textRenderable)
+			textRenderable = font.NewText(fmt.Sprintf(instructionsLine3), 60, 230)
+			render.Draw(textRenderable)
+			textRenderable = font.NewText(fmt.Sprintf(instructionsLine4), 60, 250)
+			render.Draw(textRenderable)
+			textRenderable = font.NewText(fmt.Sprintf(instructionsLine5), 60, 270)
+			render.Draw(textRenderable)
+			textRenderable = font.NewText(fmt.Sprintf(instructionsLine6), 60, 290)
+			render.Draw(textRenderable)
+			textRenderable = font.NewText(fmt.Sprintf(instructionsLine7), 60, 310)
+			render.Draw(textRenderable)
+			textRenderable = font.NewText(fmt.Sprintf(instructionsLine8), 60, 330)
+			render.Draw(textRenderable)
+			textRenderable = font.NewText(fmt.Sprintf(instructionsLine9), 60, 350)
+			render.Draw(textRenderable)
+			textRenderable = myFont2.NewText(fmt.Sprintf("Press S to begin"), 310, 390)
 			render.Draw(textRenderable)
 
 			// 4. Create the player and execute asynchronous playback
