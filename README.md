@@ -9,3 +9,5 @@ Releases available for Windows (amd64) and macOS (arm64), but builds on any [Gol
 _Some portions of this codebase were developed with AI-assisted suggestions (Claude/Gemini/other tools), reviewed and substantially modified by the author. All design decisions and final implementation are the author's own._
 
 _[docs/design-doc.md](docs/design-doc.md) was drafted collaboratively with Claude (Anthropic), based on research into the original 1981 TI-99/4A game and the author's own recollection of its mechanics. All code in this repository was written by the author._
+
+_Title screen music written by David Fesliyan, Fesliyan Studios ([Western Adventures](https://www.fesliyanstudios.com/royalty-free-music/downloads-c/western-music/29))_
