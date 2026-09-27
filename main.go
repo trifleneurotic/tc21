@@ -2,14 +2,16 @@ package main
 
 import (
 	"bytes"
+	"embed"
 	"encoding/binary"
 	"fmt"
 	"image"
 	"image/color"
+	"image/draw"
+	_ "image/png"
 	"io"
+	"io/fs"
 	"math/rand/v2"
-	"os"
-	"path/filepath"
 	"slices"
 	"time"
 
@@ -67,9 +69,14 @@ var tombstoneThemePlayer *oto.Player
 var explosionPlayer *oto.Player
 var eatenPlayer *oto.Player
 var otoContext *oto.Context
-var alienSprite *render.Sprite
 var audioInited bool
 var op *oto.NewContextOptions
+
+//go:embed assets/*
+var embeddedAssets embed.FS
+
+var assetFS fs.FS
+var SpriteCache = make(map[string]*render.Sprite)
 
 // Direction offset pairs for all 8 neighbors (Row, Column)
 var directions = [][2]int{
@@ -87,21 +94,35 @@ func createHorizontalLine(yCoord float64, lineColor color.Color) *render.Sprite 
 	return line
 }
 
+func CreateSpriteFromBytes(rawData []byte) (*render.Sprite, error) {
+	img, _, err := image.Decode(bytes.NewReader(rawData))
+	if err != nil {
+		return nil, err
+	}
+
+	// render.NewSprite in Oak v4 expects an *image.RGBA, so convert the decoded image
+	// into a concrete RGBA image before wrapping it.
+	rgba := image.NewRGBA(img.Bounds())
+	draw.Draw(rgba, rgba.Bounds(), img, img.Bounds().Min, draw.Src)
+
+	return render.NewSprite(0, 0, rgba), nil
+}
+
 func initSound() {
-	shootBytes, err := os.ReadFile("assets/audio/shoot.wav")
+	shootBytes, err := embeddedAssets.ReadFile("assets/audio/shoot.wav")
 	if err != nil {
 		panic("Failed to read WAV file: " + err.Error())
 	}
 
-	eatenBytes, err := os.ReadFile("assets/audio/eaten.wav")
+	eatenBytes, err := embeddedAssets.ReadFile("assets/audio/eaten.wav")
 	if err != nil {
 		panic("Failed to read WAV file: " + err.Error())
 	}
-	explosionBytes, err := os.ReadFile("assets/audio/explosion.wav")
+	explosionBytes, err := embeddedAssets.ReadFile("assets/audio/explosion.wav")
 	if err != nil {
 		panic("Failed to read WAV file: " + err.Error())
 	}
-	tombstoneThemeBytes, err := os.ReadFile("assets/audio/tombstoneTheme.wav")
+	tombstoneThemeBytes, err := embeddedAssets.ReadFile("assets/audio/tombstonetheme.wav")
 	if err != nil {
 		panic("Failed to read WAV file: " + err.Error())
 	}
@@ -212,7 +233,7 @@ func spawnEnemyWithAdHocTimer(ctx *scene.Context) {
 			tmp := MorgLabel + collision.Label(enemyCounter)
 			morg := entities.New(ctx,
 				entities.WithLabel(tmp),
-				entities.WithRenderable(alienSprite.Copy()),
+				entities.WithRenderable(SpriteCache["alien"].Copy()),
 			)
 			event.DefaultBus.Trigger(enemyActionReady.UnsafeEventID, morg)
 
@@ -402,20 +423,22 @@ func main() {
 
 			textColor := color.RGBA{R: 0, G: 0, B: 0, A: 255}
 
+			raw, _ := embeddedAssets.ReadFile("assets/fonts/LiberationSans-Regular.ttf")
 			fg := render.FontGenerator{
-				Size:  14,
-				Color: image.NewUniform(textColor),
-				File:  "assets/fonts/LiberationSans-Regular.ttf",
+				Size:    14,
+				Color:   image.NewUniform(textColor),
+				RawFile: raw,
 			}
 			font, err := fg.Generate()
 			if err != nil {
 				panic(err)
 			}
 
+			raw, _ = embeddedAssets.ReadFile("assets/fonts/Durango Western Eroded Demo.otf")
 			fontGen := render.FontGenerator{
-				File:  "assets/fonts/Durango Western Eroded Demo.otf", // Path to your TTF file
-				Size:  24.0,
-				Color: image.NewUniform(textColor), // Wrap with image.NewUniform
+				RawFile: raw, // Path to your TTF file
+				Size:    24.0,
+				Color:   image.NewUniform(textColor), // Wrap with image.NewUniform
 			}
 			myFont, err := fontGen.Generate()
 			if err != nil {
@@ -538,12 +561,7 @@ func main() {
 			var bullet *entities.Entity
 			var schooner *entities.Entity
 			var bulletSprite *render.Sprite
-			var tombstoneSprite *render.Sprite
-			var transparentSprite *render.Sprite
 			var lockedBulletDirection float32
-			var saguaroSprite *render.Sprite
-			var tumbleweedSprite *render.Sprite
-			var explosionSprite *render.Sprite
 			var saguaroGridXMax int
 			var saguaroGridYMax int
 			var saguaroCounter int = 0
@@ -585,12 +603,54 @@ func main() {
 
 			//initSound()
 
-			saguaroSprite, err = render.LoadSprite(filepath.Join("assets/images/saguaro1.png"))
-			tombstoneSprite, err = render.LoadSprite(filepath.Join("assets/images/tombstone.png"))
-			transparentSprite, err = render.LoadSprite(filepath.Join("assets/images/transparent.png"))
-			alienSprite, err = render.LoadSprite(filepath.Join("assets/images/alien.png"))
-			tumbleweedSprite, err = render.LoadSprite(filepath.Join("assets/images/tweed.png"))
-			explosionSprite, err = render.LoadSprite(filepath.Join("assets/images/explosion.png"))
+			fileBytes, err := embeddedAssets.ReadFile("assets/images/saguaro1.png")
+			if err != nil {
+				panic(err)
+			}
+			sprite, err := CreateSpriteFromBytes(fileBytes)
+			SpriteCache["saguaro1"] = sprite
+
+			fileBytes, err = embeddedAssets.ReadFile("assets/images/tombstone.png")
+			if err != nil {
+				panic(err)
+			}
+			sprite, err = CreateSpriteFromBytes(fileBytes)
+			SpriteCache["tombstone"] = sprite
+
+			fileBytes, err = embeddedAssets.ReadFile("assets/images/transparent.png")
+			if err != nil {
+				panic(err)
+			}
+			sprite, err = CreateSpriteFromBytes(fileBytes)
+			SpriteCache["transparent"] = sprite
+
+			fileBytes, err = embeddedAssets.ReadFile("assets/images/alien.png")
+			if err != nil {
+				panic(err)
+			}
+			sprite, err = CreateSpriteFromBytes(fileBytes)
+			SpriteCache["alien"] = sprite
+
+			fileBytes, err = embeddedAssets.ReadFile("assets/images/tombstone.png")
+			if err != nil {
+				panic(err)
+			}
+			sprite, err = CreateSpriteFromBytes(fileBytes)
+			SpriteCache["tombstone"] = sprite
+
+			fileBytes, err = embeddedAssets.ReadFile("assets/images/tweed.png")
+			if err != nil {
+				panic(err)
+			}
+			sprite, err = CreateSpriteFromBytes(fileBytes)
+			SpriteCache["tweed"] = sprite
+
+			fileBytes, err = embeddedAssets.ReadFile("assets/images/explosion.png")
+			if err != nil {
+				panic(err)
+			}
+			sprite, err = CreateSpriteFromBytes(fileBytes)
+			SpriteCache["explosion"] = sprite
 
 			// make 10 saguaros, making sure that a saguaro isn't already there
 			for i := 0; i < 10; i++ {
@@ -695,7 +755,7 @@ func main() {
 						if (saguaroX == 7 || saguaroX == 10 || saguaroX == 13) && (saguaroY == 7 || saguaroY == 10 || saguaroY == 13) {
 							fmt.Printf("%v %v safe coord\n", saguaroX, saguaroY)
 							tmp := entities.New(ctx,
-								entities.WithRenderable(tombstoneSprite.Copy()),
+								entities.WithRenderable(SpriteCache["tombstone"].Copy()),
 								entities.WithLabel(SafeLabel+collision.Label(safeCounter)),
 								entities.WithPosition(floatgeom.Point2{float64((saguaroX + 1) * 32.0), float64((saguaroY + 1) * 32.0)}))
 							render.Draw(tmp.Renderable)
@@ -704,7 +764,7 @@ func main() {
 							tombstones = append(tombstones, tmp)
 						} else {
 							tmp := entities.New(ctx,
-								entities.WithRenderable(transparentSprite.Copy()),
+								entities.WithRenderable(SpriteCache["transparent"].Copy()),
 								entities.WithLabel(SafeLabel+collision.Label(safeCounter)),
 								entities.WithPosition(floatgeom.Point2{float64((saguaroX + 1) * 32.0), float64((saguaroY + 1) * 32.0)}))
 							render.Draw(tmp.Renderable)
@@ -718,7 +778,7 @@ func main() {
 						saguaroCounter++
 						tmp := SaguaroLabel + collision.Label(saguaroCounter)
 						saguaro := entities.New(ctx,
-							entities.WithRenderable(saguaroSprite.Copy()),
+							entities.WithRenderable(SpriteCache["saguaro1"].Copy()),
 							entities.WithPosition(floatgeom.Point2{float64((saguaroX + 1) * 32.0), float64((saguaroY + 1) * 32.0)}),
 							entities.WithLabel(tmp),
 						)
@@ -742,7 +802,7 @@ func main() {
 						fmt.Printf("TUMBLEWEED AT %v %v %v\n", saguaroX, saguaroY, saguaroGrid[saguaroX][saguaroY])
 						tmp := TumbleweedLabel + collision.Label(saguaroGrid[saguaroX][saguaroY])
 						tumbleweed := entities.New(ctx,
-							entities.WithRenderable(tumbleweedSprite.Copy()),
+							entities.WithRenderable(SpriteCache["tweed"].Copy()),
 							entities.WithPosition(floatgeom.Point2{float64((saguaroX + 1) * 32.0), float64((saguaroY + 1) * 32.0)}),
 							entities.WithLabel(tmp),
 						)
@@ -761,17 +821,20 @@ func main() {
 				render.Draw(tumbleweed.Renderable)
 			}
 
-			schoonerSprite, err := render.LoadSprite(filepath.Join("assets/images/schooner1.png"))
+			fileBytes, err = embeddedAssets.ReadFile("assets/images/schooner1.png")
 			if err != nil {
 				panic(err)
 			}
+			sprite, err = CreateSpriteFromBytes(fileBytes)
+			SpriteCache["schooner1"] = sprite
+
 			schooner = entities.New(ctx,
-				entities.WithRenderable(schoonerSprite),
+				entities.WithRenderable(SpriteCache["schooner1"]),
 				entities.WithPosition(floatgeom.Point2{400, 300}),
 				entities.WithLabel(SchoonerLabel),
 			)
 
-			render.Draw(schoonerSprite)
+			render.Draw(SpriteCache["schooner1"])
 
 			bulletSprite = render.NewColorBox(8, 8, color.RGBA{R: 255, A: 255})
 
@@ -878,7 +941,7 @@ func main() {
 							explosionY := tumbleweed.Y()
 
 							newExp := entities.New(ctx,
-								entities.WithRenderable(explosionSprite.Copy()),
+								entities.WithRenderable(SpriteCache["explosion"].Copy()),
 							)
 							newExp.SetPos(floatgeom.Point2{explosionX, explosionY})
 
@@ -1025,7 +1088,7 @@ func main() {
 								explosionY := morg.Y()
 
 								newExp := entities.New(ctx,
-									entities.WithRenderable(explosionSprite.Copy()),
+									entities.WithRenderable(SpriteCache["explosion"].Copy()),
 								)
 								newExp.SetPos(floatgeom.Point2{explosionX, explosionY})
 
@@ -1043,7 +1106,7 @@ func main() {
 
 								newMorg := entities.New(ctx,
 									entities.WithLabel(tmp),
-									entities.WithRenderable(alienSprite.Copy()),
+									entities.WithRenderable(SpriteCache["alien"].Copy()),
 								)
 								newMorg.SetPos(floatgeom.Point2{saguaroPairs[toRemove][0].X(), saguaroPairs[toRemove][0].Y()})
 								morgs = append(morgs, newMorg)
@@ -1057,7 +1120,7 @@ func main() {
 								saguaroCounter++
 								tmp := SaguaroLabel + collision.Label(saguaroCounter)
 								s := entities.New(ctx,
-									entities.WithRenderable(saguaroSprite.Copy()),
+									entities.WithRenderable(SpriteCache["saguaro1"].Copy()),
 									entities.WithPosition(floatgeom.Point2{morg.X(), morg.Y()}),
 									entities.WithLabel(tmp),
 								)
@@ -1081,7 +1144,7 @@ func main() {
 								explosionY := morg.Y()
 
 								newExp := entities.New(ctx,
-									entities.WithRenderable(explosionSprite.Copy()),
+									entities.WithRenderable(SpriteCache["explosion"].Copy()),
 								)
 								newExp.SetPos(floatgeom.Point2{explosionX, explosionY})
 
@@ -1135,7 +1198,7 @@ func main() {
 									} else {
 										rotateVal = 180.0
 									}
-									schoonerSprite = schoonerSprite.Modify(mod.Rotate(rotateVal)).(*render.Sprite)
+									SpriteCache["schooner1"] = SpriteCache["schooner1"].Modify(mod.Rotate(rotateVal)).(*render.Sprite)
 									rightRotated = true
 								}
 							}
@@ -1168,7 +1231,7 @@ func main() {
 									} else {
 										rotateVal = 180.0
 									}
-									schoonerSprite = schoonerSprite.Modify(mod.Rotate(rotateVal)).(*render.Sprite)
+									SpriteCache["schooner1"] = SpriteCache["schooner1"].Modify(mod.Rotate(rotateVal)).(*render.Sprite)
 									rightRotated = true
 								}
 							}
@@ -1203,7 +1266,7 @@ func main() {
 									} else {
 										rotateVal = 180.0
 									}
-									schoonerSprite = schoonerSprite.Modify(mod.Rotate(rotateVal)).(*render.Sprite)
+									SpriteCache["schooner1"] = SpriteCache["schooner1"].Modify(mod.Rotate(rotateVal)).(*render.Sprite)
 									downRotated = true
 								}
 							}
@@ -1238,7 +1301,7 @@ func main() {
 									} else {
 										rotateVal = 180.0
 									}
-									schoonerSprite = schoonerSprite.Modify(mod.Rotate(rotateVal)).(*render.Sprite)
+									SpriteCache["schooner1"] = SpriteCache["schooner1"].Modify(mod.Rotate(rotateVal)).(*render.Sprite)
 									upRotated = true
 								}
 							}
@@ -1434,7 +1497,7 @@ func main() {
 							if (saguaroX == 7 || saguaroX == 10 || saguaroX == 13) && (saguaroY == 7 || saguaroY == 10 || saguaroY == 13) {
 								fmt.Printf("%v %v safe coord\n", saguaroX, saguaroY)
 								tmp := entities.New(ctx,
-									entities.WithRenderable(tombstoneSprite.Copy()),
+									entities.WithRenderable(SpriteCache["tombstone"].Copy()),
 									entities.WithLabel(SafeLabel+collision.Label(safeCounter)),
 									entities.WithPosition(floatgeom.Point2{float64((saguaroX + 1) * 32.0), float64((saguaroY + 1) * 32.0)}))
 								render.Draw(tmp.Renderable)
@@ -1443,7 +1506,7 @@ func main() {
 								tombstones = append(tombstones, tmp)
 							} else {
 								tmp := entities.New(ctx,
-									entities.WithRenderable(transparentSprite.Copy()),
+									entities.WithRenderable(SpriteCache["transparent"].Copy()),
 									entities.WithLabel(SafeLabel+collision.Label(safeCounter)),
 									entities.WithPosition(floatgeom.Point2{float64((saguaroX + 1) * 32.0), float64((saguaroY + 1) * 32.0)}))
 								render.Draw(tmp.Renderable)
@@ -1456,7 +1519,7 @@ func main() {
 							saguaroCounter++
 							tmp := SaguaroLabel + collision.Label(saguaroCounter)
 							saguaro := entities.New(ctx,
-								entities.WithRenderable(saguaroSprite.Copy()),
+								entities.WithRenderable(SpriteCache["saguaro1"].Copy()),
 								entities.WithPosition(floatgeom.Point2{float64((saguaroX + 1) * 32.0), float64((saguaroY + 1) * 32.0)}),
 								entities.WithLabel(tmp),
 							)
@@ -1481,7 +1544,7 @@ func main() {
 							fmt.Printf("TUMBLEWEED AT %v %v %v\n", saguaroX, saguaroY, saguaroGrid[saguaroX][saguaroY])
 							tmp := TumbleweedLabel + collision.Label(saguaroGrid[saguaroX][saguaroY])
 							tumbleweed := entities.New(ctx,
-								entities.WithRenderable(tumbleweedSprite.Copy()),
+								entities.WithRenderable(SpriteCache["tweed"].Copy()),
 								entities.WithPosition(floatgeom.Point2{float64((saguaroX + 1) * 32.0), float64((saguaroY + 1) * 32.0)}),
 								entities.WithLabel(tmp),
 							)
@@ -1534,7 +1597,7 @@ func main() {
 			textColor := color.RGBA{R: 0, G: 0, B: 0, A: 255}
 
 			fontGen := render.FontGenerator{
-				File:  "assets/fonts/Durango Western Eroded Demo.otf", // Path to your TTF file
+				File:  "fonts/Durango Western Eroded Demo.otf", // Path to your TTF file
 				Size:  32.0,
 				Color: image.NewUniform(textColor), // Wrap with image.NewUniform
 			}
@@ -1562,9 +1625,14 @@ func main() {
 
 	oak.AddScene("titleScene", scene.Scene{
 		Start: func(ctx *scene.Context) {
-			saguaroTitleSprite, err := render.LoadSprite(filepath.Join("assets/images/saguaro2.png"))
+			fileBytes, err := embeddedAssets.ReadFile("assets/images/saguaro2.png")
+			if err != nil {
+				panic(err)
+			}
+			sprite, err := CreateSpriteFromBytes(fileBytes)
+			SpriteCache["saguaro2"] = sprite
 			saguaroTitleEntity := entities.New(ctx,
-				entities.WithRenderable(saguaroTitleSprite.Copy()),
+				entities.WithRenderable(SpriteCache["saguaro2"].Copy()),
 				entities.WithPosition(floatgeom.Point2{float64(330.0), float64(460.0)}),
 			)
 			render.Draw(saguaroTitleEntity.Renderable)
@@ -1582,20 +1650,22 @@ func main() {
 			SetPlatformIcon("Tombstone City: 21st Century")
 			textColor := color.RGBA{R: 0, G: 0, B: 0, A: 255}
 
+			raw, _ := embeddedAssets.ReadFile("assets/fonts/LiberationSans-Regular.ttf")
 			fg := render.FontGenerator{
-				Size:  16,
-				Color: image.NewUniform(textColor),
-				File:  "assets/fonts/LiberationSans-Regular.ttf",
+				Size:    16,
+				Color:   image.NewUniform(textColor),
+				RawFile: raw,
 			}
 			font, err := fg.Generate()
 			if err != nil {
 				panic(err)
 			}
 
+			raw, _ = embeddedAssets.ReadFile("assets/fonts/Durango Western Eroded Demo.otf")
 			fontGen := render.FontGenerator{
-				File:  "assets/fonts/Durango Western Eroded Demo.otf", // Path to your TTF file
-				Size:  32.0,
-				Color: image.NewUniform(textColor), // Wrap with image.NewUniform
+				RawFile: raw, // Path to your TTF file
+				Size:    32.0,
+				Color:   image.NewUniform(textColor), // Wrap with image.NewUniform
 			}
 			myFont, err := fontGen.Generate()
 			if err != nil {
@@ -1603,9 +1673,9 @@ func main() {
 			}
 
 			fontGen2 := render.FontGenerator{
-				File:  "assets/fonts/Durango Western Eroded Demo.otf", // Path to your TTF file
-				Size:  26.0,
-				Color: image.NewUniform(textColor), // Wrap with image.NewUniform
+				RawFile: raw, // Path to your TTF file
+				Size:    26.0,
+				Color:   image.NewUniform(textColor), // Wrap with image.NewUniform
 			}
 			myFont2, err := fontGen2.Generate()
 			if err != nil {
@@ -1662,6 +1732,8 @@ func main() {
 		c.Screen.Height = 700
 		c.Screen.Scale = 1
 		c.Title = "Tombstone City: 21st Century"
+		c.Assets.AudioPath = "audio/"
+		c.Assets.ImagePath = "images/"
 		initSound()
 		return c, nil
 	})
