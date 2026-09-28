@@ -12,5 +12,6 @@ _[docs/design-doc.md](docs/design-doc.md) was drafted collaboratively with Claud
 
 _Title screen music written by David Fesliyan, Fesliyan Studios ([Western Adventures](https://www.fesliyanstudios.com/royalty-free-music/downloads-c/western-music/29))_.
 
-<img width="802" height="732" alt="tc21_gameplay" src="https://github.com/user-attachments/assets/78dcd9cb-87a3-4b8b-afcc-7ccbb1f92cd5" />
-<img width="802" height="732" alt="tc21_newtitlescreen" src="https://github.com/user-attachments/assets/57ce4da9-b19b-4c88-88a2-f8461d124b9b" />
+| In-Game | Title Screen |
+| :---: | :---: |
+| <img width="401" alt="tc21_gameplay" src="https://github.com/user-attachments/assets/78dcd9cb-87a3-4b8b-afcc-7ccbb1f92cd5" /> | <img width="401" alt="tc21_newtitlescreen" src="https://github.com/user-attachments/assets/57ce4da9-b19b-4c88-88a2-f8461d124b9b" /> |
