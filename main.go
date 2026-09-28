@@ -11,7 +11,9 @@ import (
 	_ "image/png"
 	"io"
 	"io/fs"
+	"log"
 	"math/rand/v2"
+	"os"
 	"slices"
 	"time"
 
@@ -71,6 +73,7 @@ var eatenPlayer *oto.Player
 var otoContext *oto.Context
 var audioInited bool
 var op *oto.NewContextOptions
+var stdoutLog *log.Logger = log.New(os.Stdout, "INFO: ", log.LstdFlags|log.Lshortfile)
 
 //go:embed assets/*
 var embeddedAssets embed.FS
@@ -200,7 +203,7 @@ func parseWav(wavBytes []byte) (sampleRate int, channels int, format oto.Format,
 
 func spawnEnemyWithAdHocTimer(ctx *scene.Context) {
 	if len(saguaroPairs) > 0 {
-		fmt.Printf("Spawning Enemy and initiating an ad-hoc 3-second timer...\n")
+		stdoutLog.Printf("Spawning Enemy and initiating an ad-hoc 3-second timer...\n")
 
 		keys := make([]int, 0, len(saguaroPairs))
 		for k := range saguaroPairs {
@@ -266,7 +269,7 @@ func spawnEnemyWithAdHocTimer(ctx *scene.Context) {
 			morgs = append(morgs, morg)
 		})
 	} else {
-		fmt.Println("No more pairs!!!!")
+		stdoutLog.Println("No more pairs!!!!")
 		if len(morgs) == 0 {
 			event.DefaultBus.Trigger(newDayEvent.UnsafeEventID, ctx)
 		}
@@ -298,7 +301,7 @@ func hasNeighbors(grid [][]int, r, c int) bool {
 		// Bound checking: Ensure the neighbor is inside the grid
 		if newRow >= 0 && newRow < rows && newCol >= 0 && newCol < cols && (grid[newRow][newCol] == 1 || grid[newRow][newCol] == 77) {
 			foundNeighbor = true
-			fmt.Printf("Neighbor found at [%d][%d] with value: %d\n", newRow, newCol, grid[newRow][newCol])
+			stdoutLog.Printf("Neighbor found at [%d][%d] with value: %d\n", newRow, newCol, grid[newRow][newCol])
 		}
 	}
 
@@ -374,7 +377,7 @@ func CheckAdjacent(mySpace *collision.Space, myTree *collision.Tree, dir Directi
 		})
 
 		ent := event.DefaultCallerMap.GetEntity(hit.CID)
-		fmt.Printf("Hit found!! %v\n", ent.CID())
+		stdoutLog.Printf("Hit found!! %v\n", ent.CID())
 		return results
 	}
 
@@ -405,6 +408,7 @@ func NewDay() bool {
 }
 
 func main() {
+
 	myColor := color.RGBA{R: 194, G: 178, B: 128, A: 255}
 	oak.SetColorBackground(image.NewUniform(myColor))
 
@@ -471,8 +475,8 @@ func main() {
 				elapsedSeconds = int64(time.Since(sceneStartTime) / time.Second)
 
 				if oldElapsedSeconds != elapsedSeconds {
-					fmt.Printf("Elapsed Scene Time: %v seconds\n", elapsedSeconds)
-					fmt.Printf("Old Elapsed Time: %v seconds\n", oldElapsedSeconds)
+					stdoutLog.Printf("Elapsed Scene Time: %v seconds\n", elapsedSeconds)
+					stdoutLog.Printf("Old Elapsed Time: %v seconds\n", oldElapsedSeconds)
 				}
 
 				return 0
@@ -698,7 +702,7 @@ func main() {
 					}
 
 					saguaroGrid[saguaroIndexX][saguaroIndexY] = int(PairLabel) + pairCounter
-					fmt.Printf("pair made!!!! %v\n", saguaroGrid[saguaroIndexX][saguaroIndexY])
+					stdoutLog.Printf("pair made!!!! %v\n", saguaroGrid[saguaroIndexX][saguaroIndexY])
 					if pairCounter == dayPairLimit {
 						break
 					}
@@ -760,7 +764,7 @@ func main() {
 						// collision.NewLabeledSpace(float64((saguaroX+1)*32.0), float64((saguaroY+1)*32.0), 32, 32, tmp)
 
 						if saguaroGrid[saguaroX][saguaroY] >= 80 && saguaroGrid[saguaroX][saguaroY] < 140 {
-							fmt.Println("adding pair..........")
+							stdoutLog.Println("adding pair..........")
 
 							saguaro.Space.Label = collision.Label(saguaroGrid[saguaroX][saguaroY])
 
@@ -813,7 +817,7 @@ func main() {
 			for _, saguaro := range saguaros {
 				collision.UpdateSpace(saguaro.X(), saguaro.Y(), 32.0, 32.0, saguaro.Space)
 				if CheckAdjacent(saguaro.Space, ctx.CollisionTree, Up) != nil || CheckAdjacent(saguaro.Space, ctx.CollisionTree, Down) != nil || CheckAdjacent(saguaro.Space, ctx.CollisionTree, Left) != nil || CheckAdjacent(saguaro.Space, ctx.CollisionTree, Right) != nil || CheckAdjacent(saguaro.Space, ctx.CollisionTree, UpLeft) != nil || CheckAdjacent(saguaro.Space, ctx.CollisionTree, UpRight) != nil || CheckAdjacent(saguaro.Space, ctx.CollisionTree, DownLeft) != nil || CheckAdjacent(saguaro.Space, ctx.CollisionTree, DownRight) != nil {
-					fmt.Println("I have a neighbor!!!!!!")
+					stdoutLog.Println("I have a neighbor!!!!!!")
 				}
 			}
 			event.GlobalBind(ctx, event.Enter, func(ev event.EnterPayload) event.Response {
@@ -1072,7 +1076,7 @@ func main() {
 								event.DefaultBus.Trigger(enemyActionReady.UnsafeEventID, newMorg)
 								for _, pairIdx := range pairsToDelete {
 									delete(saguaroPairs, pairIdx)
-									fmt.Printf("+++++saguaroPairs length NOW %v\n", len(saguaroPairs))
+									stdoutLog.Printf("+++++saguaroPairs length NOW %v\n", len(saguaroPairs))
 								}
 
 							} else {
@@ -1434,10 +1438,10 @@ func main() {
 							saguaroIndexX--
 						}
 
-						fmt.Printf("saguaro index -> %v %v\n", saguaroIndexX, saguaroIndexY)
+						stdoutLog.Printf("saguaro index -> %v %v\n", saguaroIndexX, saguaroIndexY)
 						// ...and put a saguaro there to make a single pair only
 						saguaroGrid[saguaroIndexX][saguaroIndexY] = int(PairLabel) + pairCounter
-						fmt.Printf("pair made!!!! %v\n", saguaroGrid[saguaroIndexX][saguaroIndexY])
+						stdoutLog.Printf("pair made!!!! %v\n", saguaroGrid[saguaroIndexX][saguaroIndexY])
 						if pairCounter == dayPairLimit {
 							break
 						}
@@ -1481,7 +1485,7 @@ func main() {
 							// collision.NewLabeledSpace(float64((saguaroX+1)*32.0), float64((saguaroY+1)*32.0), 32, 32, tmp)
 
 							if saguaroGrid[saguaroX][saguaroY] >= 80 && saguaroGrid[saguaroX][saguaroY] < 140 {
-								fmt.Println("adding pair..........")
+								stdoutLog.Println("adding pair..........")
 
 								saguaro.Space.Label = collision.Label(saguaroGrid[saguaroX][saguaroY])
 
@@ -1530,7 +1534,7 @@ func main() {
 				for _, saguaro := range saguaros {
 					collision.UpdateSpace(saguaro.X(), saguaro.Y(), 32.0, 32.0, saguaro.Space)
 					if CheckAdjacent(saguaro.Space, ctx.CollisionTree, Up) != nil || CheckAdjacent(saguaro.Space, ctx.CollisionTree, Down) != nil || CheckAdjacent(saguaro.Space, ctx.CollisionTree, Left) != nil || CheckAdjacent(saguaro.Space, ctx.CollisionTree, Right) != nil || CheckAdjacent(saguaro.Space, ctx.CollisionTree, UpLeft) != nil || CheckAdjacent(saguaro.Space, ctx.CollisionTree, UpRight) != nil || CheckAdjacent(saguaro.Space, ctx.CollisionTree, DownLeft) != nil || CheckAdjacent(saguaro.Space, ctx.CollisionTree, DownRight) != nil {
-						fmt.Println("I have a neighbor!!!!!!")
+						stdoutLog.Println("I have a neighbor!!!!!!")
 					}
 				}
 				return 0
@@ -1668,7 +1672,7 @@ func main() {
 
 				if oak.IsDown(key.S) {
 					tombstoneThemePlayer.Pause()
-					fmt.Println("starting.....")
+					stdoutLog.Println("starting.....")
 					ctx.Window.GoToScene("mainScene")
 				}
 
