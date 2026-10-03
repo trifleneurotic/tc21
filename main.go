@@ -1666,10 +1666,10 @@ func main() {
 			instructionsLine2 := "- shoot morgs when they are adjacent to saguaro pairs to remove those spawn points"
 			instructionsLine3 := "- centre grid of tombstones is a safe zone where morgs won't venture"
 			instructionsLine4 := "- shoot tumbleweeds & morgs to help increase population (score = population)"
-			instructionsLine5 := "- morgs become saguaro when shot (W/A/S/D; Space to fire)"
-			instructionsLine6 := "- be careful where you shoot a morg since they turn into a saguaro:"
-			instructionsLine7 := "    1. shooting a morg next to another saguaro will make a new spawn point"
-			instructionsLine8 := "    2. shooting a morg at a safe zone exit point will block that exit point for the day (day = round)"
+			instructionsLine5 := "- be careful where you shoot a morg since they turn into a saguaro:"
+			instructionsLine6 := "    1. shooting a morg next to another saguaro will make a new spawn point"
+			instructionsLine7 := "    2. shooting a morg at a safe zone exit point will block that exit point for the day (day = round)"
+			instructionsLine8 := "- W/A/S/D & Space to fire on keyboard; or D-pad & X to fire on joystick"
 			instructionsLine9 := "- new day begins when all old spawn points gone, but new day will start with more new spawn points"
 
 			SetPlatformIcon("Tombstone City: 21st Century")
@@ -1729,7 +1729,7 @@ func main() {
 			render.Draw(textRenderable)
 			textRenderable = font.NewText(fmt.Sprint(instructionsLine9), 60, 350)
 			render.Draw(textRenderable)
-			textRenderable = myFont2.NewText(fmt.Sprintf("Press S to begin"), 310, 390)
+			textRenderable = myFont2.NewText(fmt.Sprintf("Press S to begin"), 310, 410)
 			render.Draw(textRenderable)
 
 			// 4. Create the player and execute asynchronous playback
