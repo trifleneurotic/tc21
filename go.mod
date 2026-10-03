@@ -20,6 +20,7 @@ require (
 	github.com/oakmound/libudev v0.2.1 // indirect
 	github.com/oakmound/w32 v2.1.0+incompatible // indirect
 	github.com/oov/directsound-go v0.0.0-20141101201356-e53e59c700bf // indirect
+	github.com/simulatedsimian/joystick v1.0.1 // indirect
 	golang.org/x/exp v0.0.0-20220414153411-bcd21879b8fd // indirect
 	golang.org/x/exp/shiny v0.0.0-20220518171630-0b5c67f07fdf // indirect
 	golang.org/x/image v0.41.0 // indirect

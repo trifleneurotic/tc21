@@ -27,6 +27,7 @@ import (
 	"github.com/oakmound/oak/v4/render"
 	"github.com/oakmound/oak/v4/render/mod"
 	"github.com/oakmound/oak/v4/scene"
+	"github.com/simulatedsimian/joystick"
 )
 
 const GridSize = 4.0
@@ -423,6 +424,21 @@ func main() {
 			var livesCount int
 			var day *render.Text
 			var dayCount int
+			var xWasPressed bool
+			var xFire bool
+			var joyLeft bool
+			var joyRight bool
+			var joyUp bool
+			var joyDown bool
+			var joyPresent bool
+
+			js, err := joystick.Open(0)
+			if err != nil {
+				joyPresent = false
+			} else {
+				joyPresent = true
+				stdoutLog.Printf("Joystick detected: %s\n", js.Name())
+			}
 
 			textColor := color.RGBA{R: 0, G: 0, B: 0, A: 255}
 
@@ -1136,10 +1152,49 @@ func main() {
 					morgs = slices.Delete(morgs, idxMorg, idxMorg+1)
 				}
 
-				if oak.IsDown(key.A) {
-					if !oak.IsDown(key.W) && !oak.IsDown(key.S) && !oak.IsDown(key.D) {
+				if joyPresent {
+
+					jState, err := js.Read()
+					if err != nil {
+					}
+
+					xIsPressed := (jState.Buttons & (1 << 2)) != 0
+					if xIsPressed && !xWasPressed {
+						stdoutLog.Println("X Button was JUST PRESSED (Single Trigger Event)!")
+						xFire = true
+					}
+
+					xWasPressed = xIsPressed
+
+					axisCount := len(jState.AxisData)
+					if axisCount >= 4 {
+						// Standard mapping fallback for many controllers (X = axis 2, Y = axis 3)
+						dpadY := jState.AxisData[6]
+						dpadX := jState.AxisData[5]
+
+						if dpadX < -10000 {
+							stdoutLog.Println("JoyLeft")
+							joyLeft = true
+						}
+						if dpadX > 10000 {
+							stdoutLog.Println("JoyRight")
+							joyRight = true
+						}
+						if dpadY < -10000 {
+							stdoutLog.Println("JoyUp")
+							joyUp = true
+						}
+						if dpadY > 10000 {
+							stdoutLog.Println("JoyDown")
+							joyDown = true
+						}
+					}
+				}
+
+				if oak.IsDown(key.A) || (joyLeft) {
+					if (!oak.IsDown(key.W) && !oak.IsDown(key.S) && !oak.IsDown(key.D)) || (joyLeft) {
 						heldLeft, _ := oak.IsHeld(key.A)
-						if !leftPressed || heldLeft {
+						if !leftPressed || heldLeft || (joyLeft && !joyUp && !joyDown) {
 							if schooner.X()-GridSize >= 0 { // Prevent moving out of bounds
 								pt := floatgeom.Point2{schooner.X(), schooner.Y()}
 								pt2 := floatgeom.Point2{schooner.X() - GridSize, schooner.Y()}
@@ -1165,15 +1220,18 @@ func main() {
 							}
 						}
 					}
+					if joyLeft {
+						joyLeft = false
+					}
 				} else {
 					leftPressed = false
 					leftRotated = false
 				}
 
-				if oak.IsDown(key.D) {
-					if !oak.IsDown(key.S) && !oak.IsDown(key.W) && !oak.IsDown(key.A) {
+				if oak.IsDown(key.D) || (joyRight) {
+					if (!oak.IsDown(key.S) && !oak.IsDown(key.W) && !oak.IsDown(key.A)) || (joyRight) {
 						heldRight, _ := oak.IsHeld(key.D)
-						if !rightPressed || heldRight {
+						if !rightPressed || heldRight || (joyRight && !joyUp && !joyDown) {
 							if schooner.X()+GridSize <= 768 { // Prevent moving out of bounds
 								pt := floatgeom.Point2{schooner.X(), schooner.Y()}
 								pt2 := floatgeom.Point2{schooner.X() + GridSize, schooner.Y()}
@@ -1198,16 +1256,19 @@ func main() {
 							}
 						}
 					}
+					if joyRight {
+						joyRight = false
+					}
 				} else {
 					rightPressed = false
 					rightRotated = false
 
 				}
 
-				if oak.IsDown(key.S) {
-					if !oak.IsDown(key.W) && !oak.IsDown(key.A) && !oak.IsDown(key.D) {
+				if oak.IsDown(key.S) || (joyDown) {
+					if (!oak.IsDown(key.W) && !oak.IsDown(key.A) && !oak.IsDown(key.D)) || (joyDown) {
 						heldDown, _ := oak.IsHeld(key.S)
-						if !downPressed || heldDown {
+						if !downPressed || heldDown || (joyDown && !joyLeft && !joyRight) {
 							if schooner.Y()+GridSize <= 568 { // Prevent moving out of bounds
 								pt := floatgeom.Point2{schooner.X(), schooner.Y()}
 								pt2 := floatgeom.Point2{schooner.X(), schooner.Y() + GridSize}
@@ -1233,16 +1294,19 @@ func main() {
 							}
 						}
 					}
+					if joyDown {
+						joyDown = false
+					}
 				} else {
 					downPressed = false
 					downRotated = false
 
 				}
 
-				if oak.IsDown(key.W) {
-					if !oak.IsDown(key.S) && !oak.IsDown(key.A) && !oak.IsDown(key.D) {
+				if oak.IsDown(key.W) || (joyUp) {
+					if (!oak.IsDown(key.S) && !oak.IsDown(key.A) && !oak.IsDown(key.D)) || (joyUp) {
 						heldUp, _ := oak.IsHeld(key.W)
-						if !upPressed || heldUp {
+						if !upPressed || heldUp || (joyUp && !joyLeft && !joyRight) {
 							if schooner.Y()-GridSize >= 0 { // Prevent moving out of bounds
 								pt := floatgeom.Point2{schooner.X(), schooner.Y()}
 								pt2 := floatgeom.Point2{schooner.X(), schooner.Y() - GridSize}
@@ -1268,6 +1332,9 @@ func main() {
 							}
 						}
 					}
+					if joyUp {
+						joyUp = false
+					}
 				} else {
 					upPressed = false
 					upRotated = false
@@ -1276,7 +1343,7 @@ func main() {
 
 				collision.UpdateSpace(schooner.X(), schooner.Y(), 32.0, 32.0, schooner.Space)
 
-				if oak.IsDown(key.Spacebar) {
+				if oak.IsDown(key.Spacebar) || xFire {
 					_, err := shootPlayer.Seek(0, io.SeekStart)
 					if err != nil {
 						panic("player.Seek failed: " + err.Error())
@@ -1292,6 +1359,10 @@ func main() {
 						bulletAlive = true
 						shootPlayer.Play()
 
+					}
+
+					if xFire {
+						xFire = false
 					}
 
 				}
