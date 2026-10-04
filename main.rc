@@ -1,8 +1,8 @@
 1 ICON "schooner1.ico"
 
 1 VERSIONINFO
-FILEVERSION     0,1,0,0
-PRODUCTVERSION  0,1,0,0
+FILEVERSION     0,2,0,0
+PRODUCTVERSION  0,2,0,0
 FILEFLAGSMASK   0X3FL
 FILEFLAGS       0X0L
 FILEOS          0X40004L
@@ -15,12 +15,12 @@ BEGIN
         BEGIN
             VALUE "CompanyName",      "Gabriel P Stone"
             VALUE "FileDescription",  "Tombstone City: 21st Century"
-            VALUE "FileVersion",      "0.1.0.0"
+            VALUE "FileVersion",      "0.2.0.0"
             VALUE "InternalName",     "tc21"
             VALUE "LegalCopyright",   "© 2026 Gabriel P Stone"
             VALUE "OriginalFilename", "tc21.exe"
             VALUE "ProductName",      "Tombstone City: 21st Century"
-            VALUE "ProductVersion",   "0.1.0.0"
+            VALUE "ProductVersion",   "0.2.0.0"
         END
     END
     BLOCK "VarFileInfo"
