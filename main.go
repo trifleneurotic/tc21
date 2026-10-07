@@ -242,28 +242,28 @@ func spawnEnemyWithAdHocTimer(ctx *scene.Context) {
 			event.DefaultBus.Trigger(enemyActionReady.UnsafeEventID, morg)
 
 			// spawn Morg
-			if CheckAdjacent(randomPair[randomIndex].Space, ctx.CollisionTree, Up) == nil {
+			if CheckAdjacentForSpawn(randomPair[randomIndex].Space, ctx.CollisionTree, Up) == nil {
 				morg.SetPos(floatgeom.Point2{randomPair[randomIndex].X(), randomPair[randomIndex].Y() - 32.0})
 				collision.UpdateSpace(randomPair[randomIndex].X(), randomPair[randomIndex].Y()-32.0, 32, 32, morg.Space)
-			} else if CheckAdjacent(randomPair[randomIndex].Space, ctx.CollisionTree, Down) == nil {
+			} else if CheckAdjacentForSpawn(randomPair[randomIndex].Space, ctx.CollisionTree, Down) == nil {
 				morg.SetPos(floatgeom.Point2{randomPair[randomIndex].X(), randomPair[randomIndex].Y() + 32.0})
 				collision.UpdateSpace(randomPair[randomIndex].X(), randomPair[randomIndex].Y()+32.0, 32, 32, morg.Space)
-			} else if CheckAdjacent(randomPair[randomIndex].Space, ctx.CollisionTree, Left) == nil {
+			} else if CheckAdjacentForSpawn(randomPair[randomIndex].Space, ctx.CollisionTree, Left) == nil {
 				morg.SetPos(floatgeom.Point2{randomPair[randomIndex].X() - 32.0, randomPair[randomIndex].Y()})
 				collision.UpdateSpace(randomPair[randomIndex].X()-32.0, randomPair[randomIndex].Y(), 32, 32, morg.Space)
-			} else if CheckAdjacent(randomPair[randomIndex].Space, ctx.CollisionTree, Right) == nil {
+			} else if CheckAdjacentForSpawn(randomPair[randomIndex].Space, ctx.CollisionTree, Right) == nil {
 				morg.SetPos(floatgeom.Point2{randomPair[randomIndex].X() + 32.0, randomPair[randomIndex].Y()})
 				collision.UpdateSpace(randomPair[randomIndex].X()+32.0, randomPair[randomIndex].Y(), 32, 32, morg.Space)
-			} else if CheckAdjacent(randomPair[randomIndex].Space, ctx.CollisionTree, DownLeft) == nil {
+			} else if CheckAdjacentForSpawn(randomPair[randomIndex].Space, ctx.CollisionTree, DownLeft) == nil {
 				morg.SetPos(floatgeom.Point2{randomPair[randomIndex].X() - 32.0, randomPair[randomIndex].Y() + 32.0})
 				collision.UpdateSpace(randomPair[randomIndex].X()-32.0, randomPair[randomIndex].Y()+32.0, 32, 32, morg.Space)
-			} else if CheckAdjacent(randomPair[randomIndex].Space, ctx.CollisionTree, DownRight) == nil {
+			} else if CheckAdjacentForSpawn(randomPair[randomIndex].Space, ctx.CollisionTree, DownRight) == nil {
 				morg.SetPos(floatgeom.Point2{randomPair[randomIndex].X() + 32.0, randomPair[randomIndex].Y() + 32.0})
 				collision.UpdateSpace(randomPair[randomIndex].X()+32.0, randomPair[randomIndex].Y()+32.0, 32, 32, morg.Space)
-			} else if CheckAdjacent(randomPair[randomIndex].Space, ctx.CollisionTree, UpRight) == nil {
+			} else if CheckAdjacentForSpawn(randomPair[randomIndex].Space, ctx.CollisionTree, UpRight) == nil {
 				morg.SetPos(floatgeom.Point2{randomPair[randomIndex].X() + 32.0, randomPair[randomIndex].Y() - 32.0})
 				collision.UpdateSpace(randomPair[randomIndex].X()+32.0, randomPair[randomIndex].Y()-32.0, 32, 32, morg.Space)
-			} else if CheckAdjacent(randomPair[randomIndex].Space, ctx.CollisionTree, UpLeft) == nil {
+			} else if CheckAdjacentForSpawn(randomPair[randomIndex].Space, ctx.CollisionTree, UpLeft) == nil {
 				morg.SetPos(floatgeom.Point2{randomPair[randomIndex].X() - 32.0, randomPair[randomIndex].Y() - 32.0})
 				collision.UpdateSpace(randomPair[randomIndex].X()-32.0, randomPair[randomIndex].Y()-32.0, 32, 32, morg.Space)
 			}
@@ -312,6 +312,75 @@ func hasNeighbors(grid [][]int, r, c int) bool {
 type AdjacentResult struct {
 	Space *collision.Space
 	CID   event.CallerID
+}
+
+func CheckAdjacentForSpawn(mySpace *collision.Space, myTree *collision.Tree, dir Direction) []AdjacentResult {
+	if mySpace == nil {
+		return nil
+	}
+
+	// 1. Get current boundaries
+	x, y := mySpace.X(), mySpace.Y()
+	w, h := mySpace.W(), mySpace.H()
+
+	var scanSpace *collision.Space
+
+	// 2. Project a 1-pixel wide/tall checking box right outside the border
+	switch dir {
+	case Up:
+		// Directly above the top border
+		scanSpace = collision.NewUnassignedSpace(x, y-32, w, 32)
+	case Down:
+		// Directly below the bottom border
+		scanSpace = collision.NewUnassignedSpace(x, y+h, w, 32)
+	case Left:
+		// Directly left of the left border
+		scanSpace = collision.NewUnassignedSpace(x-32, y, 32, h)
+	case Right:
+		// Directly right of the right border
+		scanSpace = collision.NewUnassignedSpace(x+w, y, 32, h)
+	// --- Diagonal Directions (1x1 pixel sensor placed corner-adjacent) ---
+	case UpLeft:
+		// 1 pixel up, 1 pixel left from the top-left corner
+		scanSpace = collision.NewUnassignedSpace(x-32, y-32, 32, 32)
+	case UpRight:
+		// 1 pixel up, 1 pixel right from the top-right corner
+		scanSpace = collision.NewUnassignedSpace(x+w, y-32, 32, 32)
+	case DownLeft:
+		// 1 pixel down, 1 pixel left from the bottom-left corner
+		scanSpace = collision.NewUnassignedSpace(x-32, y+h, 32, 32)
+	case DownRight:
+		// 1 pixel down, 1 pixel right from the bottom-right corner
+		scanSpace = collision.NewUnassignedSpace(x+w, y+h, 32, 32)
+	}
+
+	// 3. Query Oak's default CollisionTree
+	// SearchIntersect returns all spaces overlapping our 1-pixel scan zone
+	// hits := collision.DefaultTree.SearchIntersect(scanSpace.Bounds())
+	hits := myTree.SearchIntersect(scanSpace.Bounds())
+
+	var results []AdjacentResult
+
+	for _, hit := range hits {
+		// Ignore self
+		if hit == mySpace {
+			continue
+
+		}
+
+		// Found a valid, sprite-sized adjacent neighbor!
+
+		results = append(results, AdjacentResult{
+			Space: hit,
+			CID:   hit.CID,
+		})
+
+		ent := event.DefaultCallerMap.GetEntity(hit.CID)
+		stdoutLog.Printf("Hit found!! %v\n", ent.CID())
+		return results
+	}
+
+	return nil
 }
 
 // CheckAdjacent looks for a non-overlapping space directly touching the current space
@@ -717,6 +786,14 @@ func main() {
 						saguaroIndexX--
 					}
 
+					if saguaroIndexX == saguaroX && saguaroIndexY == saguaroY {
+						pairCounter--
+						stdoutLog.Printf("CONTINUING..... -> %v %v, %v %v\n", saguaroX, saguaroY, saguaroIndexX, saguaroIndexY)
+						continue
+
+					}
+
+					stdoutLog.Printf("saguaro indices -> %v %v, %v %v\n", saguaroX, saguaroY, saguaroIndexX, saguaroIndexY)
 					saguaroGrid[saguaroIndexX][saguaroIndexY] = int(PairLabel) + pairCounter
 					stdoutLog.Printf("pair made!!!! %v\n", saguaroGrid[saguaroIndexX][saguaroIndexY])
 					if pairCounter == dayPairLimit {
@@ -1509,7 +1586,14 @@ func main() {
 							saguaroIndexX--
 						}
 
-						stdoutLog.Printf("saguaro index -> %v %v\n", saguaroIndexX, saguaroIndexY)
+						if saguaroIndexX == saguaroX {
+							pairCounter--
+							stdoutLog.Printf("CONTINUING..... -> %v %v, %v %v\n", saguaroX, saguaroY, saguaroIndexX, saguaroIndexY)
+							continue
+
+						}
+
+						stdoutLog.Printf("saguaro indices -> %v %v, %v %v\n", saguaroX, saguaroY, saguaroIndexX, saguaroIndexY)
 						// ...and put a saguaro there to make a single pair only
 						saguaroGrid[saguaroIndexX][saguaroIndexY] = int(PairLabel) + pairCounter
 						stdoutLog.Printf("pair made!!!! %v\n", saguaroGrid[saguaroIndexX][saguaroIndexY])
@@ -1622,10 +1706,12 @@ func main() {
 		Start: func(ctx *scene.Context) {
 			textColor := color.RGBA{R: 0, G: 0, B: 0, A: 255}
 
+			raw, _ := embeddedAssets.ReadFile("assets/fonts/Durango Western Eroded Demo.otf")
+
 			fontGen := render.FontGenerator{
-				File:  "fonts/Durango Western Eroded Demo.otf", // Path to your TTF file
-				Size:  32.0,
-				Color: image.NewUniform(textColor), // Wrap with image.NewUniform
+				RawFile: raw, // Path to your TTF file
+				Size:    32.0,
+				Color:   image.NewUniform(textColor), // Wrap with image.NewUniform
 			}
 			myFont, err := fontGen.Generate()
 			if err != nil {
